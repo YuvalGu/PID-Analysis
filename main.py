@@ -1,10 +1,8 @@
-import tkinter as tk
-import customtkinter
 from views.home_page import HomePage
 from views.complex_example import AppExample
 
 
-class App():
+class App:
     def __init__(self):
         self.home_page = HomePage()
         self.home_page.mainloop()
