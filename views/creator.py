@@ -101,8 +101,8 @@ class ParticipantCreator(customtkinter.CTkToplevel):
             self.participant_data = pd.read_csv(self.file_path, encoding="ISO-8859-1")
             self.participant_data['chain'] = chain_ans
             self.participant_data['individual'] = individual
-            self.participant = Participant(chain_ans, individual)
             # todo: insert data to in DB
             # tkinter.messagebox.showerror(title='DB Error\n',
             #                              message=f"couldn't insert participant {individual} to Database")
+            self.participant = individual
         self.destroy()

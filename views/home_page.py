@@ -87,17 +87,11 @@ class HomePage(customtkinter.CTk):
     def add_participant(self):
         """
         1. create participant
-        2. if succeed
-            a) add the participant to the frame
-            b) add to database
-        :param p_type: p - patient, c - control
+        2. if succeed - add the participant to the frame
         """
         participant_creator = ParticipantCreator()
         participant_creator.create()
         participant_creator.wait_window()
         p = participant_creator.participant
         if p:
-            self.participant_frame.add_item(p)
-            # self.participant_frame.add_item(participant_creator.participant)
-            # participant_creator.participant.create_tree_map_using_plt()
-            # todo: participant_frame.add_item(paticipant), add to db!
+            self.participant_frame.add_participant(p)
