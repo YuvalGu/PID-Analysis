@@ -45,19 +45,18 @@ class ParticipantFrame(customtkinter.CTk):
 
         # Create a canvas widget inside the tab
         canvas = customtkinter.CTkCanvas(self.tabview.tab(name))
-        # canvas.grid(column=0, row=0, side="left", fill="both", expand=True)
         canvas.pack(side='left', fill='both', expand=True)
 
         # Create a frame inside the canvas for the buttons
-        # frame = tkinter.ttk.Frame(canvas)
         frame = customtkinter.CTkFrame(canvas)
 
         # Add a scrollbar to the canvas
         # scrollbar = tkinter.ttk.Scrollbar(self.tabview.tab(name), orient='vertical', command=canvas.yview)
         scrollbar = customtkinter.CTkScrollbar(self.tabview.tab(name), orientation='vertical', command=canvas.yview)
         scrollbar.pack(side='right', fill='y')
-        canvas.configure(yscrollcommand=scrollbar.set, bg=self.tabview.tab(name).cget("fg_color")[1])
-        # canvas.configure(yscrollcommand=scrollbar.set)
+
+        # canvas.configure(yscrollcommand=scrollbar.set, bg=self.tabview.tab(name).cget("fg_color")[1])
+        canvas.configure(yscrollcommand=scrollbar.set)
 
         # Configure the canvas to scroll the frame
         canvas.create_window((0, 0), window=frame, anchor='nw')
@@ -65,9 +64,12 @@ class ParticipantFrame(customtkinter.CTk):
         # Function to update the scroll region
         def configure_scroll_region(event):
             canvas.configure(scrollregion=canvas.bbox('all'))
+            canvas.itemconfigure(frame_id, width=canvas.winfo_width())
 
-        # Configure the scroll region when the frame size changes
-        frame.bind('<Configure>', configure_scroll_region)
+        # Configure the scroll region and frame size when the canvas size changes
+        frame_id = canvas.create_window((0, 0), window=frame, anchor='nw')
+        canvas.bind('<Configure>', configure_scroll_region)
+
         self.tab_frames[name] = frame
 
     def remove_item(self, individual):
@@ -85,7 +87,8 @@ class ParticipantFrame(customtkinter.CTk):
         row = len(frame.winfo_children())
         image_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "delete.png")), size=(20, 20))
         f = customtkinter.CTkFrame(master=frame)
-        f.grid(row=row, column=0, pady=(0, 20))
+        # f.grid(row=row, column=0, pady=(0, 20))
+        f.pack(fill="both", expand=True)
         p_button = customtkinter.CTkButton(master=f, text=p, anchor="center",
                                            command=lambda: self.show_participant(p))
         p_button.grid(row=row, column=0, padx=10, pady=(0, 20))
