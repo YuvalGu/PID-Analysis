@@ -6,6 +6,7 @@ from database.database_manager import AzureDatabaseManager
 from PIL import Image
 import os
 from participants.participant import Participant
+from azure.kusto.data.exceptions import KustoError
 
 
 class ParticipantFrame(customtkinter.CTk):
@@ -19,6 +20,8 @@ class ParticipantFrame(customtkinter.CTk):
         self.p_frames = []
         self.table_names = table_names
         self.widgets = {}
+        # self.azure.delete_participant('IGH', 'C_test_IGH')
+        # self.azure.delete_participant('IGH', 'individual')
         self.names = self.azure.get_all_participants_names()
         self.tab_frames = {}
         self.participants = {}
@@ -35,8 +38,6 @@ class ParticipantFrame(customtkinter.CTk):
         self.create_tab('Patients')
         self.create_tab('Controls')
         for table in self.table_names:
-            if table == 'IGH_new':
-                table = 'IGH'
             self.create_tab(table)
         self.create_tab('All')
 
@@ -76,12 +77,16 @@ class ParticipantFrame(customtkinter.CTk):
         answer = tkinter.messagebox.askyesno(title='confirmation\n',
                                              message=f'Are you sure you want to delete {individual} from database?')
         if answer:
-            del self.participants[individual]
-            # todo: remove from DB
-            for frame in self.widgets[individual]:
-                frame.destroy()
-            # self.tabview.destroy()
-            # self.create_tab_views()
+            table_name, _ = self.get_relevant_tab_names(individual)
+            try:
+                self.azure.delete_participant(table_name, individual)
+                for frame in self.widgets[individual]:
+                    frame.destroy()
+                del self.participants[individual]
+                tkinter.messagebox.showinfo(title='SUCCESS',
+                                            message=f'participant {individual} has been successfully removed')
+            except KustoError as e:
+                tkinter.messagebox.showerror(title="Couldn't delete from DB\n", message=str(e))
 
     def add_item(self, frame, p):
         row = len(frame.winfo_children())
@@ -114,8 +119,6 @@ class ParticipantFrame(customtkinter.CTk):
         else:
             tabs.append('Patients')
         for table in self.table_names:
-            if table == 'IGH_new':
-                table = 'IGH'
             if table in individual:
                 tabs.append(table)
                 table_name = table

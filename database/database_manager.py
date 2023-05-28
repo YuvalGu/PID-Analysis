@@ -1,10 +1,8 @@
-import azure.kusto.data.helpers
 from azure.kusto.data import KustoClient, KustoConnectionStringBuilder, DataFormat
 from azure.kusto.data.exceptions import KustoServiceError
 from azure.kusto.data.helpers import dataframe_from_result_table
+from azure.kusto.ingest import IngestionProperties, QueuedIngestClient
 import pandas as pd
-import azure.kusto.data.helpers as helpers
-from azure.kusto.ingest import QueuedIngestClient, IngestionProperties
 import logging
 
 
@@ -15,14 +13,14 @@ class AzureDatabaseManager:
         self.app_key = "gSC8Q~bzSfOg8FWMd1y2582fCa-b1mnzWc_QXbD9"
         self.authority_id = "f04f3e7f-6fe8-4613-b5e3-791d54cc7573"
         self.database = database
+        self.kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
+            self.connection_string, aad_app_id=self.aad_app_id, app_key=self.app_key, authority_id=self.authority_id)
         self.client = None
-        self.tables = ['IGH_new', 'TRB', 'TRG']
+        self.tables = ['IGH', 'TRB', 'TRG']
         self._connect()
 
     def _connect(self):
-        kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
-            self.connection_string, aad_app_id=self.aad_app_id, app_key=self.app_key, authority_id=self.authority_id)
-        self.client = KustoClient(kcsb)
+        self.client = KustoClient(self.kcsb)
 
     def _disconnect(self):
         self.client.close()
@@ -86,22 +84,23 @@ class AzureDatabaseManager:
         return df
 
     def insert_participant(self, df, table_name):
-        """
-qkl for dataframe: f".ingest inline into table {table_name} <|", dataframe=df
-qkl for file path: .ingest inline into table TGB (h@"<file-path>")
-Replace <file-path> with the actual path to your file. The h@ prefix is used to specify a file path in the
-.ingest inline command.
-Note that this approach is suitable for small file sizes. If you have larger files or need more advanced ingestion
-options, you may want to consider using other methods, such as .ingest inline blob, .ingest inline csv, or utilizing
-the Kusto Data Ingestion SDKs or connectors specific to your data source.
-        """
-        data_str = df.to_csv(index=False, header=False)
-        self.execute_query(f".ingest inline into table {table_name} <| {data_str}")
+        kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
+            "https://ingest-kvc3vyswugka1463f9f0e3.northeurope.kusto.windows.net/shiba",
+            aad_app_id="6aed01c7-b86c-461a-857c-6ed3f234ca67",
+            app_key="gSC8Q~bzSfOg8FWMd1y2582fCa-b1mnzWc_QXbD9",
+            authority_id="f04f3e7f-6fe8-4613-b5e3-791d54cc7573"
+        )
+        ingestion_props = IngestionProperties(
+            database=self.database,
+            table=table_name,
+            data_format=DataFormat.CSV,
+        )
+        client = QueuedIngestClient(kcsb)
+        client.ingest_from_dataframe(df, ingestion_properties=ingestion_props)
 
-    def delete(self, df, table_name):
-        data_str = df.to_csv(index=False, header=False)
-        self.execute_query(f".delete from table {table_name} where [individual] == 'C_test_IGH' ")
-        # self.execute_query(f".delete {data_str} from table {table_name}")
+    def delete_participant(self, table_name, individual):
+        self.execute_query(
+            f".delete table {table_name} records <| {table_name} | where ['individual'] == '{individual}'")
 
     def __del__(self):
         self._disconnect()

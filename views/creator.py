@@ -4,6 +4,7 @@ import customtkinter
 import pandas as pd
 from participants.participant import Participant
 from database.database_manager import AzureDatabaseManager
+from azure.kusto.data.exceptions import KustoError
 
 
 class ParticipantCreator(customtkinter.CTkToplevel):
@@ -12,7 +13,7 @@ class ParticipantCreator(customtkinter.CTkToplevel):
         self.participant = None
         self.participant_data = None
         # todo: get options from json file - not hardcoded
-        self.options = ['IGH_new', 'TRB', 'TRG']
+        self.options = ['IGH', 'TRB', 'TRG']
         # self.get_table_options()
 
         # upload frame parameters
@@ -98,11 +99,16 @@ class ParticipantCreator(customtkinter.CTkToplevel):
             valid = False
 
         if valid:
-            self.participant_data = pd.read_csv(self.file_path, encoding="ISO-8859-1")
-            self.participant_data['chain'] = chain_ans
-            self.participant_data['individual'] = individual
-            # todo: insert data to in DB
-            # tkinter.messagebox.showerror(title='DB Error\n',
-            #                              message=f"couldn't insert participant {individual} to Database")
-            self.participant = individual
+            try:
+                self.participant_data = pd.read_csv(self.file_path, encoding="ISO-8859-1")
+                self.participant_data['chain'] = chain_ans
+                self.participant_data['individual'] = individual
+                azure.insert_participant(self.participant_data, chain_ans)
+                self.participant = individual
+                tkinter.messagebox.showinfo(title='SUCCESS',
+                                            message=f'participant {individual} has been successfully added')
+            except UnicodeDecodeError as e:
+                tkinter.messagebox.showerror(title="Couldn't read csv file\n", message=str(e))
+            except KustoError as e:
+                tkinter.messagebox.showerror(title="Couldn't insert to DB\n", message=str(e))
         self.destroy()

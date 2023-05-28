@@ -1,20 +1,14 @@
 import tkinter
 import tkinter.messagebox
 import customtkinter
-import pandas as pd
 from views.creator import ParticipantCreator
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from views.participants_frame import ParticipantFrame
 from views.groups_frame import GroupFrame, GroupFrame1, GroupFrame2
-from participants.participant import Participant
-import participants.participant
 
 
 class HomePage(customtkinter.CTk):
     def __init__(self):
         super().__init__()
-
-        # Participant('IGH_new', 'DOCK8_5887_IGH').analyze()
 
         # configure window
         self.file_label = None
@@ -56,16 +50,8 @@ class HomePage(customtkinter.CTk):
         self.appearance_mode_optionemenu.set("Dark")
         self.scaling_optionemenu.set("100%")
 
-        # # create main entry and button
-        # self.entry = customtkinter.CTkEntry(self, placeholder_text="CTkEntry")
-        # self.entry.grid(row=3, column=1, columnspan=2, padx=(20, 0), pady=(20, 20), sticky="nsew")
-        #
-        # self.main_button_1 = customtkinter.CTkButton(master=self, fg_color="transparent", border_width=2,
-        #                                              text_color=("gray10", "#DCE4EE"))
-        # self.main_button_1.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
-
         # create participant list
-        self.participant_frame = ParticipantFrame(self, ['IGH_new', 'TRB', 'TRG'])
+        self.participant_frame = ParticipantFrame(self, ['IGH', 'TRB', 'TRG'])
         # self.participant_frame = GroupFrame2(self)
 
         # create group list
