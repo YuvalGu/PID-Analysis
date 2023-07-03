@@ -1,7 +1,16 @@
 from azure.kusto.data import KustoClient, KustoConnectionStringBuilder, DataFormat
 from azure.kusto.data.exceptions import KustoServiceError
 from azure.kusto.data.helpers import dataframe_from_result_table
-from azure.kusto.ingest import IngestionProperties, QueuedIngestClient
+from azure.kusto.ingest import (
+    BlobDescriptor,
+    FileDescriptor,
+    IngestionProperties,
+    IngestionStatus,
+    KustoStreamingIngestClient,
+    ManagedStreamingIngestClient,
+    QueuedIngestClient,
+    StreamDescriptor,
+)
 import pandas as pd
 import logging
 
@@ -75,6 +84,9 @@ class AzureDatabaseManager:
     def participant_exists(self, individual, table_name):
         result = self.execute_query(f"{table_name} | where ['individual'] == '{individual}' | take 1")
         return result.primary_results[0].rows_count != 0
+
+    def group_exists(self, group_name):
+        return False
 
     def get_participant_data(self, individual, table_name):
         result = self.execute_query(

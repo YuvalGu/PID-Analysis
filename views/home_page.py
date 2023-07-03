@@ -1,9 +1,9 @@
 import tkinter
 import tkinter.messagebox
 import customtkinter
-from views.creator import ParticipantCreator
+from views.creator import ParticipantCreator, GroupCreator
 from views.participants_frame import ParticipantFrame
-from views.groups_frame import GroupFrame, GroupFrame1, GroupFrame2
+from views.groups_frame import GroupFrame
 
 
 class HomePage(customtkinter.CTk):
@@ -31,7 +31,7 @@ class HomePage(customtkinter.CTk):
         self.add_participant_button = customtkinter.CTkButton(self.sidebar_frame, command=self.add_participant,
                                                               text='Add Participant')
         self.add_participant_button.grid(row=1, column=0, padx=20, pady=10)
-        self.create_group_button = customtkinter.CTkButton(self.sidebar_frame, command=self.sidebar_button_event,
+        self.create_group_button = customtkinter.CTkButton(self.sidebar_frame, command=self.create_group,
                                                            text='Create Group')
         self.create_group_button.grid(row=2, column=0, padx=20, pady=10)
         self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
@@ -58,7 +58,7 @@ class HomePage(customtkinter.CTk):
         self.group_frame = GroupFrame(self)
 
         # set default values
-        self.create_group_button.configure(state="disabled")
+        # self.create_group_button.configure(state="disabled")
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -67,8 +67,13 @@ class HomePage(customtkinter.CTk):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
 
-    def sidebar_button_event(self):
-        print("sidebar_button click")
+    def create_group(self):
+        group_creator = GroupCreator()
+        group_creator.create()
+        group_creator.wait_window()
+        g = group_creator.group
+        if g:
+            self.group_frame.add_group(g)
 
     def add_participant(self):
         """

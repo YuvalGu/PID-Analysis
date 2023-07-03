@@ -2,7 +2,6 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 import pandas as pd
-from participants.participant import Participant
 from database.database_manager import AzureDatabaseManager
 from azure.kusto.data.exceptions import KustoError
 
@@ -109,6 +108,85 @@ class ParticipantCreator(customtkinter.CTkToplevel):
                                             message=f'participant {individual} has been successfully added')
             except UnicodeDecodeError as e:
                 tkinter.messagebox.showerror(title="Couldn't read csv file\n", message=str(e))
+            except KustoError as e:
+                tkinter.messagebox.showerror(title="Couldn't insert to DB\n", message=str(e))
+        self.destroy()
+
+
+class GroupCreator(customtkinter.CTkToplevel):
+    def __init__(self):
+        super().__init__()
+        self.azure = AzureDatabaseManager('shiba')
+        self.participants = self.azure.get_all_participants_names()
+
+        # create frame parameters
+        self.group_name = None
+        self.p_checkbox = []
+        self.apply_button = None
+
+    def create(self):
+        # configure window
+        self.title("Create Group")
+        self.geometry(f"{450}x{300}")
+
+        # configure grid layout (3x2)
+        self.grid_columnconfigure(0, weight=2)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure((0, 1, 2), weight=2)
+
+        # on top
+        self.lift()
+        self.attributes("-topmost", True)
+
+        # Enter group name
+        self.group_name = customtkinter.CTkEntry(self, placeholder_text="Enter group name")
+        self.group_name.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
+
+        scrollable_frame = customtkinter.CTkScrollableFrame(self)
+        scrollable_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+
+        for name in self.participants:
+            checkbox = customtkinter.CTkCheckBox(master=scrollable_frame, text=name)
+            checkbox.grid(row=len(self.p_checkbox), column=0, pady=(20, 0), padx=(20, 0), sticky="w")
+            self.p_checkbox.append(checkbox)
+
+        # Apply button
+        self.apply_button = customtkinter.CTkButton(master=self, border_width=2,
+                                                    text='Apply', command=self.apply)
+        self.apply_button.grid(row=2, column=1, sticky="nsew")
+
+    def apply(self):
+        valid = True
+        group_name_ans = self.group_name.get()
+
+        # validate group name:
+        if group_name_ans == "Enter group name" or group_name_ans == '':
+            tkinter.messagebox.showerror(title='Invalid name\n', message='Error: Please enter group name')
+            valid = False
+
+        # check if exists in database
+        elif self.azure.group_exists(group_name_ans):
+            tkinter.messagebox.showerror(title='Already Exists\n',
+                                         message=f'Error: {group_name_ans} already exists in database')
+            valid = False
+
+        # check if at least 2 participants:
+        members = []
+        for check_box in self.p_checkbox:
+            if check_box.get():
+                members.append(check_box.cget('text'))
+        if len(members) < 2:
+            tkinter.messagebox.showerror(title='Invalid Group\n',
+                                         message=f'Error: please choose at least 2 participants')
+            valid = False
+
+        if valid:
+            try:
+                # todo: insert group to database
+                # self.azure.insert_group() parameters: group name ans list of individuals
+                self.group = group_name_ans
+                tkinter.messagebox.showinfo(title='SUCCESS',
+                                            message=f'Group {group_name_ans} has been successfully added')
             except KustoError as e:
                 tkinter.messagebox.showerror(title="Couldn't insert to DB\n", message=str(e))
         self.destroy()
