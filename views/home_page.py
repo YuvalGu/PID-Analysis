@@ -2,8 +2,13 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 from views.creator import ParticipantCreator, GroupCreator
+from views.selector import SelectChain
 from views.participants_frame import ParticipantFrame
 from views.groups_frame import GroupFrame
+from participants.group import Group
+from database.database_manager import AzureDatabaseManager
+from azure.kusto.data.exceptions import KustoError
+import pandas as pd
 
 
 class HomePage(customtkinter.CTk):
@@ -52,10 +57,9 @@ class HomePage(customtkinter.CTk):
 
         # create participant list
         self.participant_frame = ParticipantFrame(self, ['IGH', 'TRB', 'TRG'])
-        # self.participant_frame = GroupFrame2(self)
 
         # create group list
-        self.group_frame = GroupFrame(self)
+        self.group_frame = GroupFrame(self, ['IGH', 'TRB', 'TRG'], self.participant_frame)
 
         # set default values
         # self.create_group_button.configure(state="disabled")
@@ -68,12 +72,16 @@ class HomePage(customtkinter.CTk):
         customtkinter.set_widget_scaling(new_scaling_float)
 
     def create_group(self):
-        group_creator = GroupCreator()
-        group_creator.create()
-        group_creator.wait_window()
-        g = group_creator.group
-        if g:
-            self.group_frame.add_group(g)
+        table_selection = SelectChain()
+        table_selection.create()
+        table_selection.wait_window()
+        t = table_selection.table
+        if t:
+            group_creator = GroupCreator(t)
+            group_creator.create()
+            group_creator.wait_window()
+            if group_creator.valid:
+                self.group_frame.add_group(group_creator.group_name, group_creator.table_name, group_creator.members)
 
     def add_participant(self):
         """

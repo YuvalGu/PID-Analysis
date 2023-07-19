@@ -20,8 +20,6 @@ class ParticipantFrame(customtkinter.CTk):
         self.p_frames = []
         self.table_names = table_names
         self.widgets = {}
-        # self.azure.delete_participant('IGH', 'C_test_IGH')
-        # self.azure.delete_participant('IGH', 'individual')
         self.names = self.azure.get_all_participants_names()
         self.tab_frames = {}
         self.participants = {}
@@ -80,6 +78,7 @@ class ParticipantFrame(customtkinter.CTk):
             table_name, _ = self.get_relevant_tab_names(individual)
             try:
                 self.azure.delete_participant(table_name, individual)
+                self.azure.delete_participant_from_group(individual)
                 for frame in self.widgets[individual]:
                     frame.destroy()
                 del self.participants[individual]
@@ -127,3 +126,10 @@ class ParticipantFrame(customtkinter.CTk):
 
     def show_participant(self, individual):
         self.participants[individual].analyze()
+
+    def get_participants(self, individuals):
+        participants_list = []
+        for individual in individuals:
+            participants_list.append(self.participants[individual])
+        return participants_list
+

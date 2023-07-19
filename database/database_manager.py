@@ -47,6 +47,19 @@ class AzureDatabaseManager:
             print("Has partial results:", error.has_partial_results())
             print("Result size:", len(error.get_partial_results()))
 
+    def get_all_groups_names(self):
+        return dataframe_from_result_table(self.execute_query(f'groups | distinct group_name').primary_results[0])[
+            'group_name']
+
+    def get_groups_names_by_table(self, table_name):
+        return dataframe_from_result_table(self.execute_query(
+            f"groups | where ['table_name'] == '{table_name}' | distinct group_name").primary_results[0])['group_name']
+
+    def get_participants_from_group(self, group_name, table_name):
+        return dataframe_from_result_table(self.execute_query(
+            f"groups | where (['group_name'] == '{group_name}' and ['table_name'] == '{table_name}') |"
+            f" project  individual").primary_results[0])['individual']
+
     def get_all_participants_names(self):
         participants = []
         for table_name in self.tables:
@@ -85,17 +98,26 @@ class AzureDatabaseManager:
         result = self.execute_query(f"{table_name} | where ['individual'] == '{individual}' | take 1")
         return result.primary_results[0].rows_count != 0
 
-    def group_exists(self, group_name):
-        return False
-
-    def get_participant_data(self, individual, table_name):
+    def group_exists(self, group_name, table_name):
         result = self.execute_query(
-            f"{table_name} | where (['individual'] == '{individual}'"
-            f" and ['functionality'] == 'productive') | project cdr3aa, total")
+            f"groups | where ['group_name'] == '{group_name}' and ['table_name'] == '{table_name}'  | take 1")
+        return result.primary_results[0].rows_count != 0
+
+    # def get_group_data(self, group_name, table_name):
+    #     result = self.execute_query(
+    #         f"groups | where (['group_name'] == '{group_name}' and ['table_name'] == '{table_name}') "
+    #         f"| project individual, total_sequences, unique_sequences, shannon, simpson")
+    #     df = dataframe_from_result_table(result.primary_results[0])
+    #     return df
+
+    def get_participant_data(self, table_name, individual):
+        result = self.execute_query(
+            f"{table_name} | where ['individual'] == '{individual}' | "
+            f"project functionality, cdr3aa, jgene, dgene, vgene, total")
         df = dataframe_from_result_table(result.primary_results[0])
         return df
 
-    def insert_participant(self, df, table_name):
+    def insert_data(self, df, table_name):
         kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
             "https://ingest-kvc3vyswugka1463f9f0e3.northeurope.kusto.windows.net/shiba",
             aad_app_id="6aed01c7-b86c-461a-857c-6ed3f234ca67",
@@ -113,6 +135,14 @@ class AzureDatabaseManager:
     def delete_participant(self, table_name, individual):
         self.execute_query(
             f".delete table {table_name} records <| {table_name} | where ['individual'] == '{individual}'")
+
+    def delete_participant_from_group(self, individual):
+        self.execute_query(f".delete table groups records <| groups | where ['individual'] == '{individual}'")
+
+    def delete_group(self, table_name, group_name):
+        self.execute_query(
+            f".delete table groups records <| groups | where ['group_name'] == '{group_name}' and"
+            f"['table_name'] == '{table_name}'")
 
     def __del__(self):
         self._disconnect()

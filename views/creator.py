@@ -3,6 +3,8 @@ import tkinter.messagebox
 import customtkinter
 import pandas as pd
 from database.database_manager import AzureDatabaseManager
+from participants.participant import Participant
+from participants.group import Group
 from azure.kusto.data.exceptions import KustoError
 
 
@@ -11,7 +13,6 @@ class ParticipantCreator(customtkinter.CTkToplevel):
         super().__init__()
         self.participant = None
         self.participant_data = None
-        # todo: get options from json file - not hardcoded
         self.options = ['IGH', 'TRB', 'TRG']
         # self.get_table_options()
 
@@ -102,7 +103,7 @@ class ParticipantCreator(customtkinter.CTkToplevel):
                 self.participant_data = pd.read_csv(self.file_path, encoding="ISO-8859-1")
                 self.participant_data['chain'] = chain_ans
                 self.participant_data['individual'] = individual
-                azure.insert_participant(self.participant_data, chain_ans)
+                azure.insert_data(self.participant_data, chain_ans)
                 self.participant = individual
                 tkinter.messagebox.showinfo(title='SUCCESS',
                                             message=f'participant {individual} has been successfully added')
@@ -114,15 +115,21 @@ class ParticipantCreator(customtkinter.CTkToplevel):
 
 
 class GroupCreator(customtkinter.CTkToplevel):
-    def __init__(self):
+    def __init__(self, table_name, group_name=None, members=None, edit=False):
         super().__init__()
+        if members is None:
+            members = []
         self.azure = AzureDatabaseManager('shiba')
-        self.participants = self.azure.get_all_participants_names()
-
+        self.table_name = table_name
         # create frame parameters
-        self.group_name = None
+        self.members = members
+        self.group_name = group_name
+        self.edit = edit
         self.p_checkbox = []
+        self.valid = True
+        self.group_entry = None
         self.apply_button = None
+        self.participants = self.azure.get_participants_names_from_table(table_name)
 
     def create(self):
         # configure window
@@ -139,8 +146,13 @@ class GroupCreator(customtkinter.CTkToplevel):
         self.attributes("-topmost", True)
 
         # Enter group name
-        self.group_name = customtkinter.CTkEntry(self, placeholder_text="Enter group name")
-        self.group_name.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
+        self.group_entry = customtkinter.CTkEntry(self, placeholder_text="Enter group name")
+        # self.group_entry = customtkinter.CTkEntry(self)
+        if self.edit:
+            self.group_entry.insert(0, self.group_name)
+        # else:
+        #     self.group_entry.insert(0, "Enter group name")
+        self.group_entry.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
 
         scrollable_frame = customtkinter.CTkScrollableFrame(self)
         scrollable_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
@@ -148,6 +160,8 @@ class GroupCreator(customtkinter.CTkToplevel):
         for name in self.participants:
             checkbox = customtkinter.CTkCheckBox(master=scrollable_frame, text=name)
             checkbox.grid(row=len(self.p_checkbox), column=0, pady=(20, 0), padx=(20, 0), sticky="w")
+            if self.edit and name in self.members:
+                checkbox.select()
             self.p_checkbox.append(checkbox)
 
         # Apply button
@@ -156,37 +170,41 @@ class GroupCreator(customtkinter.CTkToplevel):
         self.apply_button.grid(row=2, column=1, sticky="nsew")
 
     def apply(self):
-        valid = True
-        group_name_ans = self.group_name.get()
-
-        # validate group name:
-        if group_name_ans == "Enter group name" or group_name_ans == '':
-            tkinter.messagebox.showerror(title='Invalid name\n', message='Error: Please enter group name')
-            valid = False
-
-        # check if exists in database
-        elif self.azure.group_exists(group_name_ans):
-            tkinter.messagebox.showerror(title='Already Exists\n',
-                                         message=f'Error: {group_name_ans} already exists in database')
-            valid = False
-
-        # check if at least 2 participants:
-        members = []
+        self.group_name = self.group_entry.get()
+        self.members = []
         for check_box in self.p_checkbox:
             if check_box.get():
-                members.append(check_box.cget('text'))
-        if len(members) < 2:
+                self.members.append(check_box.cget('text'))
+
+        # validate group name:
+        if self.group_name == "Enter group name" or self.group_name == '':
+            tkinter.messagebox.showerror(title='Invalid name\n', message='Error: Please enter group name')
+            self.valid = False
+
+        # check if exists in database
+        elif not self.edit and self.azure.group_exists(self.group_name, self.table_name):
+            tkinter.messagebox.showerror(title='Already Exists\n',
+                                         message=f'Error: {self.group_name} already exists in database')
+            self.valid = False
+
+        # check if at least 2 participants:
+        elif len(self.members) < 2:
             tkinter.messagebox.showerror(title='Invalid Group\n',
                                          message=f'Error: please choose at least 2 participants')
-            valid = False
-
-        if valid:
+            self.valid = False
+        if self.valid:
             try:
-                # todo: insert group to database
-                # self.azure.insert_group() parameters: group name ans list of individuals
-                self.group = group_name_ans
+                group_df = pd.DataFrame(columns=['group_name', 'table_name', 'individual'])
+                for individual in self.members:
+                    group_df.loc[len(group_df)] = {'group_name': self.group_name, 'table_name': self.table_name,
+                                                   'individual': individual}
+                if self.edit:
+                    self.azure.delete_group(self.table_name, self.group_name)
+                self.azure.insert_data(group_df, 'groups')
                 tkinter.messagebox.showinfo(title='SUCCESS',
-                                            message=f'Group {group_name_ans} has been successfully added')
+                                            message=f'Group {self.group_name} has been successfully added')
             except KustoError as e:
                 tkinter.messagebox.showerror(title="Couldn't insert to DB\n", message=str(e))
+                self.group = None
         self.destroy()
+

@@ -14,15 +14,10 @@ class Participant:
         self.azure = AzureDatabaseManager('shiba')
         self.individual = individual
         self.table_name = chain
-        self.unique_sequences = 0
-        self.total_sequences = 0
-        self.shannon = 0
-        self.simpson = 0
-        self.df = None
-
-    # def create_columns(self):
-    #     self.data['chain'] = self.table_name
-    #     self.data['individual'] = self.individual
+        self.diversity_indices = {}
+        self.pro_df, self.unpro_df = self.get_data()
+        for col in ['cdr3aa', 'jgene', 'dgene', 'vgene']:
+            self.diversity_indices[col] = self._calculate_diversity_indices(col)
 
     def analyze(self):
         # create a figure
@@ -39,32 +34,51 @@ class Participant:
         plt.show()
 
     def _create_tree_map(self, ax):
-        data = self.azure.get_participant_data(self.individual, self.table_name)
-        data = data.sort_values(by=['total'])
-        data = data.reset_index(drop=True)
-        self.df = data
         colors = []
-        for i in range(len(data.index)):
+        for i in range(len(self.pro_df.index)):
             colors.append('#%06X' % randint(0, 0xFFFFFF))
-        squarify.plot(sizes=data['total'], color=colors, ax=ax)
+        squarify.plot(sizes=self.pro_df['total'], color=colors, ax=ax)
         cursor = mplcursors.cursor(hover=True)
         cursor.connect("add", lambda sel: sel.annotation.set_text(
-            f"cdr3aa:{data['cdr3aa'].iloc[sel.target.index]}\ntotal: {data['total'].iloc[sel.target.index]}\n"))
+            f"cdr3aa:{self.pro_df['cdr3aa'].iloc[sel.target.index]}\ntotal: {self.pro_df['total'].iloc[sel.target.index]}\n"))
         ax.axis('off')
 
     def _diversity_indices(self, ax):
-        self.total_sequences = self.df['total'].sum()
-        self.unique_sequences = len(pd.unique(self.df['cdr3aa']))
-        # Convert abundance to probabilities
-        probabilities = self.df['total'].to_numpy() / np.sum(self.df['total'].values)
-        # Calculate Shannon index
-        self.shannon = entropy(list(probabilities), base=2)
-        # Calculate Simpson index
-        self.simpson = np.sum(probabilities ** 2)
+        di = self.diversity_indices['cdr3aa']['productive']
+        text = f"Unique sequences: {di['unique sequences']}\n\nTotal sequences: {di['total sequences']}\n\nShannon: " \
+               f"{di['shannon']}\n\nSimpson: {di['simpson']}\n"
         ax.axis('off')
-        ax.text(0, 0.6,
-                s=f'Unique sequences: {self.unique_sequences}\n\nTotal sequences: {self.total_sequences}\n\nShannon: {self.shannon}\n\nSimpson: {self.simpson}\n',
-                fontsize=15)
+        ax.text(0, 0.6, s=text, fontsize=15)
 
-    def get_individual(self):
-        return self.individual
+    def get_data(self):
+        data = self.azure.get_participant_data(self.table_name, self.individual)
+        data = data.sort_values(by=['total'])
+        data1 = data.query("functionality=='productive'")[['cdr3aa', 'jgene', 'dgene', 'vgene', 'total']]
+        data1 = data1.reset_index(drop=True)
+        data2 = data.query("functionality=='unproductive'")[['cdr3aa', 'jgene', 'dgene', 'vgene', 'total']]
+        data2 = data2.reset_index(drop=True)
+        return data1, data2
+
+    def _calculate_diversity_indices(self, col):
+        di_dict = {'productive': {}, 'unproductive': {}}
+        total_sequences = self.pro_df['total'].sum()
+        unique_sequences = len(pd.unique(self.pro_df[col]))
+        # Convert abundance to probabilities
+        probabilities = self.pro_df['total'].to_numpy() / np.sum(self.pro_df['total'].values)
+        # Calculate Shannon index
+        shannon = entropy(list(probabilities), base=2)
+        # Calculate Simpson index
+        simpson = np.sum(probabilities ** 2)
+        di_dict['productive'] = {'total sequences': total_sequences, 'unique sequences': unique_sequences,
+                                 'shannon': shannon, 'simpson': simpson}
+        total_sequences = self.unpro_df['total'].sum()
+        unique_sequences = len(pd.unique(self.unpro_df[col]))
+        # Convert abundance to probabilities
+        probabilities = self.unpro_df['total'].to_numpy() / np.sum(self.unpro_df['total'].values)
+        # Calculate Shannon index
+        shannon = entropy(list(probabilities), base=2)
+        # Calculate Simpson index
+        simpson = np.sum(probabilities ** 2)
+        di_dict['unproductive'] = {'total sequences': total_sequences, 'unique sequences': unique_sequences,
+                                   'shannon': shannon, 'simpson': simpson}
+        return di_dict
