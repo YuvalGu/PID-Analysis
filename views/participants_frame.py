@@ -69,7 +69,23 @@ class ParticipantFrame(customtkinter.CTk):
         frame_id = canvas.create_window((0, 0), window=frame, anchor='nw')
         canvas.bind('<Configure>', configure_scroll_region)
 
+        self.change_canvas_color(name)
         self.tab_frames[name] = frame
+
+    def change_all_canvas_color(self):
+        for table in self.table_names:
+            self.change_canvas_color(table)
+
+    def change_canvas_color(self, table):
+        canvas = self.tabview.tab(table).winfo_children()[0]
+        if table in self.widgets and len(list(self.widgets[table])) != 0:
+            colors = self.widgets[table][list(self.widgets[table])[0]][0].cget('fg_color')
+        else:
+            colors = self.tabview.tab(table).cget("fg_color")
+        if customtkinter.get_appearance_mode() == 'Light':
+            canvas.configure(bg=colors[0], highlightbackground=colors[0])
+        elif customtkinter.get_appearance_mode() == 'Dark' or 'System':
+            canvas.configure(bg=colors[1], highlightbackground=colors[1])
 
     def remove_item(self, individual):
         answer = tkinter.messagebox.askyesno(title='confirmation\n',

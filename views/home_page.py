@@ -66,6 +66,8 @@ class HomePage(customtkinter.CTk):
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
+        self.participant_frame.change_all_canvas_color()
+        self.group_frame.change_all_canvas_color()
 
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
