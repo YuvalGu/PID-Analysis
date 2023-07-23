@@ -6,8 +6,6 @@ from views.selector import SelectChain
 from views.participants_frame import ParticipantFrame
 from views.groups_frame import GroupFrame
 from participants.group import Group
-from database.database_manager import AzureDatabaseManager
-from azure.kusto.data.exceptions import KustoError
 import pandas as pd
 
 

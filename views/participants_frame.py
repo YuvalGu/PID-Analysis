@@ -19,6 +19,7 @@ class ParticipantFrame(customtkinter.CTk):
         self.tabview = None
         self.p_frames = []
         self.table_names = table_names
+        self.tab_names = ['Patients', 'Controls'] + self.table_names + ['All']
         self.widgets = {}
         self.names = self.azure.get_all_participants_names()
         self.tab_frames = {}
@@ -33,11 +34,8 @@ class ParticipantFrame(customtkinter.CTk):
     def create_tab_views(self):
         self.tabview = customtkinter.CTkTabview(self.root, width=500)
         self.tabview.grid(row=0, column=1, rowspan=4, padx=(20, 0), pady=(20, 20), sticky="nsew")
-        self.create_tab('Patients')
-        self.create_tab('Controls')
-        for table in self.table_names:
-            self.create_tab(table)
-        self.create_tab('All')
+        for name in self.tab_names:
+            self.create_tab(name)
 
     def create_tab(self, name):
         self.tabview.add(name)
@@ -45,7 +43,6 @@ class ParticipantFrame(customtkinter.CTk):
         # Create a canvas widget inside the tab
         canvas = customtkinter.CTkCanvas(self.tabview.tab(name))
         canvas.pack(side='left', fill='both', expand=True)
-
         # Create a frame inside the canvas for the buttons
         frame = customtkinter.CTkFrame(canvas)
 
@@ -97,6 +94,7 @@ class ParticipantFrame(customtkinter.CTk):
                 self.azure.delete_participant_from_group(individual)
                 for frame in self.widgets[individual]:
                     frame.destroy()
+                del self.widgets[individual]
                 del self.participants[individual]
                 tkinter.messagebox.showinfo(title='SUCCESS',
                                             message=f'participant {individual} has been successfully removed')
@@ -148,4 +146,3 @@ class ParticipantFrame(customtkinter.CTk):
         for individual in individuals:
             participants_list.append(self.participants[individual])
         return participants_list
-

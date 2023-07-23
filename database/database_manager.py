@@ -103,13 +103,6 @@ class AzureDatabaseManager:
             f"groups | where ['group_name'] == '{group_name}' and ['table_name'] == '{table_name}'  | take 1")
         return result.primary_results[0].rows_count != 0
 
-    # def get_group_data(self, group_name, table_name):
-    #     result = self.execute_query(
-    #         f"groups | where (['group_name'] == '{group_name}' and ['table_name'] == '{table_name}') "
-    #         f"| project individual, total_sequences, unique_sequences, shannon, simpson")
-    #     df = dataframe_from_result_table(result.primary_results[0])
-    #     return df
-
     def get_participant_data(self, table_name, individual):
         result = self.execute_query(
             f"{table_name} | where ['individual'] == '{individual}' | "

@@ -128,6 +128,7 @@ class GroupCreator(customtkinter.CTkToplevel):
         self.p_checkbox = []
         self.valid = True
         self.group_entry = None
+        self.search_entry = None
         self.apply_button = None
         self.participants = self.azure.get_participants_names_from_table(table_name)
 
@@ -139,7 +140,7 @@ class GroupCreator(customtkinter.CTkToplevel):
         # configure grid layout (3x2)
         self.grid_columnconfigure(0, weight=2)
         self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure((0, 1, 2), weight=2)
+        self.grid_rowconfigure((0, 1, 2, 3), weight=2)
 
         # on top
         self.lift()
@@ -147,29 +148,47 @@ class GroupCreator(customtkinter.CTkToplevel):
 
         # Enter group name
         self.group_entry = customtkinter.CTkEntry(self, placeholder_text="Enter group name")
-        # self.group_entry = customtkinter.CTkEntry(self)
         if self.edit:
             self.group_entry.insert(0, self.group_name)
-        # else:
-        #     self.group_entry.insert(0, "Enter group name")
         self.group_entry.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
 
-        scrollable_frame = customtkinter.CTkScrollableFrame(self)
-        scrollable_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        self.search_entry = customtkinter.CTkEntry(self, placeholder_text="Search...")
+        self.search_entry.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10)
+        self.search_entry.bind("<KeyRelease>", self.check)
 
+        scrollable_frame = customtkinter.CTkScrollableFrame(self)
+        scrollable_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
         for name in self.participants:
             checkbox = customtkinter.CTkCheckBox(master=scrollable_frame, text=name)
-            checkbox.grid(row=len(self.p_checkbox), column=0, pady=(20, 0), padx=(20, 0), sticky="w")
             if self.edit and name in self.members:
                 checkbox.select()
             self.p_checkbox.append(checkbox)
+        self.update_list(self.p_checkbox)
 
         # Apply button
         self.apply_button = customtkinter.CTkButton(master=self, border_width=2,
                                                     text='Apply', command=self.apply)
-        self.apply_button.grid(row=2, column=1, sticky="nsew")
+        self.apply_button.grid(row=3, column=1, sticky="nsew")
+
+    def update_list(self, data):
+        for check_box in self.p_checkbox:
+            check_box.grid_remove()
+        for i, checkbox in enumerate(data):
+            checkbox.grid(row=i, column=0, pady=(20, 0), padx=(20, 0), sticky="w")
+
+    def check(self, e):
+        typed = self.search_entry.get()
+        data = []
+        if typed == '':
+            data = self.p_checkbox
+        else:
+            for checkbox in self.p_checkbox:
+                if typed.lower() in checkbox.cget('text').lower():
+                    data.append(checkbox)
+        self.update_list(data)
 
     def apply(self):
+        old_group_name = self.group_name
         self.group_name = self.group_entry.get()
         self.members = []
         for check_box in self.p_checkbox:
@@ -199,7 +218,7 @@ class GroupCreator(customtkinter.CTkToplevel):
                     group_df.loc[len(group_df)] = {'group_name': self.group_name, 'table_name': self.table_name,
                                                    'individual': individual}
                 if self.edit:
-                    self.azure.delete_group(self.table_name, self.group_name)
+                    self.azure.delete_group(self.table_name, old_group_name)
                 self.azure.insert_data(group_df, 'groups')
                 tkinter.messagebox.showinfo(title='SUCCESS',
                                             message=f'Group {self.group_name} has been successfully added')
