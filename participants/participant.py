@@ -5,6 +5,7 @@ from random import randint
 import squarify
 import mplcursors
 from database.database_manager import AzureDatabaseManager
+from views.loading_frame import LoadingFrame
 from scipy.stats import entropy
 import numpy as np
 
@@ -20,6 +21,7 @@ class Participant:
             self.diversity_indices[col] = self._calculate_diversity_indices(col)
 
     def analyze(self):
+        loading = LoadingFrame()
         # create a figure
         fig = plt.figure(figsize=(15, 8))
         fig.canvas.manager.set_window_title('Analyze')
@@ -32,6 +34,7 @@ class Participant:
         ax2 = plt.subplot(gs[0, -1])
         self._diversity_indices(ax2)
         plt.show()
+        loading.close_loading_window()
 
     def _create_tree_map(self, ax):
         colors = []
