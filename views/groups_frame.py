@@ -5,7 +5,7 @@ from database.database_manager import AzureDatabaseManager
 from azure.kusto.data.exceptions import KustoError
 from participants.group import Group
 from views.creator import GroupCreator
-from views.selector import SelectFunctionality
+from views.selector import SelectFunctionality, SelectGene
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,7 +52,7 @@ class GroupFrame(customtkinter.CTk):
 
         heat_map_button = customtkinter.CTkButton(master=analyze_groups_frame, text="heat map", image=heat_map_icon,
                                                   anchor="center", fg_color='#188e99', hover_color='#0f5c63',
-                                                  command=lambda: print("sssss"), height=20, width=20)
+                                                  command=self.show_heat_map, height=20, width=20)
         heat_map_button.grid(row=0, column=0, padx=(10, 0), pady=(0, 20), ipadx=0, ipady=0, sticky="se")
         scatter_graph_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "scattergraph.png")),
                                                     size=(20, 20))
@@ -144,6 +144,7 @@ class GroupFrame(customtkinter.CTk):
         delete_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "delete.png")), size=(20, 20))
         edit_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "edit.png")), size=(20, 20))
         analyze_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "analyze.png")), size=(20, 20))
+        export_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "export.png")), size=(20, 20))
         f = customtkinter.CTkFrame(master=frame)
         f.pack(fill="both", expand=True)
         checkbox = customtkinter.CTkCheckBox(master=f, text=group)
@@ -162,9 +163,14 @@ class GroupFrame(customtkinter.CTk):
 
         g_button = customtkinter.CTkButton(master=f, text="", image=analyze_icon,
                                            anchor="center",
-                                           fg_color='#63e83a', hover_color='#47ab29',
+                                           fg_color='#188e99', hover_color='#0f5c63',
                                            command=lambda: self.show_group_data(table, group), height=20, width=20)
         g_button.grid(row=row, column=3, padx=(10, 0), pady=(0, 20))
+        export_button = customtkinter.CTkButton(master=f, text="", image=export_icon,
+                                           anchor="center",
+                                           fg_color='#63e83a', hover_color='#47ab29',
+                                           command=lambda: self.export_to_excel(table, group), height=20, width=20)
+        export_button.grid(row=row, column=4, padx=(10, 0), pady=(0, 20))
         self.widgets[table][group].append(f)
 
     def add_group(self, group_name, table_name, members):
@@ -173,6 +179,23 @@ class GroupFrame(customtkinter.CTk):
         self.groups[table_name][group_name] = group
         self.widgets[table_name][group_name] = []
         self.add_item(table_name, group_name)
+
+    def export_to_excel(self, table_name, group_name):
+        # root = customtkinter.CTk()
+        # root.withdraw()  # Hide the main window
+
+        # Ask the user to choose the save location and file name
+        file_path = customtkinter.filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel Files", "*.xlsx")])
+
+        if file_path:
+            try:
+                group = self.groups[table_name][group_name]
+                data = group.get_participants_data()
+                # Write the DataFrame to the Excel file
+                data.to_excel(file_path, index=False)
+                tkinter.messagebox.showinfo(title='SUCCESS', message=f'Group {group_name} data exported successfully')
+            except Exception as e:
+                tkinter.messagebox.showerror(title="ERROR exporting the data\n", message=str(e))
 
     def show_group_data(self, table, name):
         self.groups[table][name].analyze()
@@ -183,33 +206,60 @@ class GroupFrame(customtkinter.CTk):
         if len(selected_groups) < 2:
             tkinter.messagebox.showerror(title='Error\n', message=f'Please select at least 2 groups')
             return
-        functionality_selection = SelectFunctionality()
-        functionality_selection.create()
-        functionality_selection.wait_window()
-        functionality = functionality_selection.ans
-        if functionality:
-            all_markers = ['.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x',
-                           'D', 'd', '|', '_', ]
-            group_markers = {}
-            diversity_indices = {'total sequences': {}, 'unique sequences': {}, 'shannon': {}, 'simpson': {}}
-            for i, group in enumerate(selected_groups):
-                group_markers[group.group_name] = all_markers[i] if len(all_markers) > i else 'o'
+        functionality = self.get_functionality()
+        if not functionality:
+            return
+        all_markers = ['.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x',
+                       'D', 'd', '|', '_', ]
+        group_markers = {}
+        diversity_indices = {'total sequences': {}, 'unique sequences': {}, 'shannon': {}, 'simpson': {}}
+        for i, group in enumerate(selected_groups):
+            group_markers[group.group_name] = all_markers[i] if len(all_markers) > i else 'o'
+            for graph in diversity_indices.keys():
+                diversity_indices[graph][group.group_name] = []
+            for p in group.participants:
                 for graph in diversity_indices.keys():
-                    diversity_indices[graph][group.group_name] = []
-                for p in group.participants:
-                    for graph in diversity_indices.keys():
-                        diversity_indices[graph][group.group_name].append(
-                            p.diversity_indices['cdr3aa'][functionality][graph])
-            fig, axs = plt.subplots(2, 2)
-            fig.suptitle(f"{table}'s Groups Diversity Indices - {functionality}", fontweight="bold")
-            # Flatten the axs array so that we can loop through each subplot
-            axs = axs.ravel()
-            for i, key in enumerate(diversity_indices.keys()):
-                self.create_diversity_index_plot(axs[i], diversity_indices[key], group_markers, key)
-            # Adjust layout to avoid overlapping labels
-            plt.tight_layout()
-            # Show the plot
-            plt.show()
+                    diversity_indices[graph][group.group_name].append(
+                        p.diversity_indices['cdr3aa'][functionality][graph])
+        fig, axs = plt.subplots(2, 2)
+        fig.suptitle(f"{table}'s Groups Diversity Indices - {functionality}", fontweight="bold")
+        # Flatten the axs array so that we can loop through each subplot
+        axs = axs.ravel()
+        for i, key in enumerate(diversity_indices.keys()):
+            self.create_diversity_index_plot(axs[i], diversity_indices[key], group_markers, key)
+        # Adjust layout to avoid overlapping labels
+        plt.tight_layout()
+        # Show the plot
+        plt.show()
+
+    def show_heat_map(self):
+        table = self.tabview.get()
+        selected_groups = self.get_selected_groups(table)
+        if len(selected_groups) < 2:
+            tkinter.messagebox.showerror(title='Error\n', message=f'Please select at least 2 groups')
+            return
+        gene = self.get_gene()
+        if not gene:
+            return
+        sequences = {'total sequences': {}, 'unique sequences': {}}
+        functionality = {'productive': sequences, 'unproductive': sequences}
+        for i, group in enumerate(selected_groups):
+            for f in functionality.keys():
+                functionality[f]['total sequences'][group.group_name] = []
+                functionality[f]['unique sequences'][group.group_name] = []
+            for p in group.participants:
+                for f in functionality.keys():
+                    total = p.diversity_indices[gene][functionality]['total sequences']
+                    unique = p.diversity_indices[gene][functionality]['unique sequences']
+                    functionality[f]['total sequences'][group.group_name].append(total)
+                    functionality[f]['unique sequences'][group.group_name].append(unique)
+        fig, axs = plt.subplots(2, 2)
+        fig.suptitle(f" Heat map of {table} Groups - {gene}", fontweight="bold")
+        # Flatten the axs array so that we can loop through each subplot
+        axs = axs.ravel()
+        for i, key in enumerate(functionality.keys()):
+            self.create_heat_map()
+        plt.show()
 
     def create_diversity_index_plot(self, ax, groups, group_markers, title):
         x_positions = np.arange(len(groups)) * 2
@@ -223,6 +273,9 @@ class GroupFrame(customtkinter.CTk):
                  rotation_mode="anchor")
         ax.set_ylabel(title)
 
+    def create_heat_map(self):
+        pass
+
     def get_selected_groups(self, tab):
         selected = []
         for group_name in self.widgets[tab].keys():
@@ -230,3 +283,15 @@ class GroupFrame(customtkinter.CTk):
             if checkbox.get():
                 selected.append(self.groups[tab][checkbox.cget('text')])
         return selected
+
+    def get_functionality(self):
+        functionality_selection = SelectFunctionality()
+        functionality_selection.create()
+        functionality_selection.wait_window()
+        return functionality_selection.ans
+
+    def get_gene(self):
+        gene_selection = SelectGene()
+        gene_selection.create()
+        gene_selection.wait_window()
+        return gene_selection.ans
