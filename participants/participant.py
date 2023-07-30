@@ -15,10 +15,15 @@ class Participant:
         self.azure = AzureDatabaseManager('shiba')
         self.individual = individual
         self.table_name = chain
-        self.diversity_indices = {}
         self.pro_df, self.unpro_df = self.get_data()
-        for col in ['cdr3aa', 'jgene', 'dgene', 'vgene']:
-            self.diversity_indices[col] = self._calculate_diversity_indices(col)
+        self.diversity_indices = None
+        self._calculate_diversity_indices()
+        self.genes = {'productive': {}, 'unproductive': {}}
+        self.cols = ['jgene', 'vgene']
+        if not self.table_name == 'TRG':
+            self.cols += ['dgene']
+        for col in self.cols:
+            self.genes['productive'][col], self.genes['unproductive'][col] = self._calculate_gene_data(col)
 
     def analyze(self):
         loading = LoadingFrame()
@@ -32,7 +37,7 @@ class Participant:
         self._create_tree_map(ax1)
         # statistics:
         ax2 = plt.subplot(gs[0, -1])
-        self._diversity_indices(ax2)
+        self._show_diversity_indices(ax2)
         plt.show()
         loading.close_loading_window()
 
@@ -46,8 +51,8 @@ class Participant:
             f"cdr3aa:{self.pro_df['cdr3aa'].iloc[sel.target.index]}\ntotal: {self.pro_df['total'].iloc[sel.target.index]}\n"))
         ax.axis('off')
 
-    def _diversity_indices(self, ax):
-        di = self.diversity_indices['cdr3aa']['productive']
+    def _show_diversity_indices(self, ax):
+        di = self.diversity_indices['productive']
         text = f"Unique sequences: {di['unique sequences']}\n\nTotal sequences: {di['total sequences']}\n\nShannon: " \
                f"{di['shannon']}\n\nSimpson: {di['simpson']}\n"
         ax.axis('off')
@@ -62,26 +67,37 @@ class Participant:
         data2 = data2.reset_index(drop=True)
         return data1, data2
 
-    def _calculate_diversity_indices(self, col):
-        di_dict = {'productive': {}, 'unproductive': {}}
+    def _calculate_diversity_indices(self):
+        self.diversity_indices = {'productive': {}, 'unproductive': {}}
         total_sequences = self.pro_df['total'].sum()
-        unique_sequences = len(pd.unique(self.pro_df[col]))
+        unique_sequences = len(pd.unique(self.pro_df['cdr3aa']))
         # Convert abundance to probabilities
         probabilities = self.pro_df['total'].to_numpy() / np.sum(self.pro_df['total'].values)
         # Calculate Shannon index
         shannon = entropy(list(probabilities), base=2)
         # Calculate Simpson index
         simpson = np.sum(probabilities ** 2)
-        di_dict['productive'] = {'total sequences': total_sequences, 'unique sequences': unique_sequences,
-                                 'shannon': shannon, 'simpson': simpson}
+        self.diversity_indices['productive'] = {'total sequences': total_sequences,
+                                                'unique sequences': unique_sequences, 'shannon': shannon,
+                                                'simpson': simpson}
         total_sequences = self.unpro_df['total'].sum()
-        unique_sequences = len(pd.unique(self.unpro_df[col]))
+        unique_sequences = len(pd.unique(self.unpro_df['cdr3aa']))
         # Convert abundance to probabilities
         probabilities = self.unpro_df['total'].to_numpy() / np.sum(self.unpro_df['total'].values)
         # Calculate Shannon index
         shannon = entropy(list(probabilities), base=2)
         # Calculate Simpson index
         simpson = np.sum(probabilities ** 2)
-        di_dict['unproductive'] = {'total sequences': total_sequences, 'unique sequences': unique_sequences,
-                                   'shannon': shannon, 'simpson': simpson}
-        return di_dict
+        self.diversity_indices['unproductive'] = {'total sequences': total_sequences,
+                                                  'unique sequences': unique_sequences, 'shannon': shannon,
+                                                  'simpson': simpson}
+
+    def _calculate_gene_data(self, col):
+        # Remove rows containing 'or' in col
+        self.pro_df = self.pro_df[~self.pro_df[col].str.contains(' or ')]
+        self.unpro_df = self.unpro_df[~self.unpro_df[col].str.contains(' or ')]
+        pro_grouped_df = self.pro_df.groupby(col).agg(unique=(col, 'size'), total=('total', 'sum')).reset_index()
+        unpro_grouped_df = self.unpro_df.groupby(col).agg(unique=(col, 'size'), total=('total', 'sum')).reset_index()
+        return pro_grouped_df, unpro_grouped_df
+
+

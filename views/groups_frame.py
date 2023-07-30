@@ -1,6 +1,8 @@
 import tkinter
 import tkinter.messagebox
 import customtkinter
+import mplcursors
+
 from database.database_manager import AzureDatabaseManager
 from azure.kusto.data.exceptions import KustoError
 from participants.group import Group
@@ -9,6 +11,9 @@ from views.selector import SelectFunctionality, SelectGene
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
+import plotly.express as px
 import os
 
 
@@ -57,10 +62,10 @@ class GroupFrame(customtkinter.CTk):
         scatter_graph_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "scattergraph.png")),
                                                     size=(20, 20))
 
-        scatter_graph_button = customtkinter.CTkButton(master=analyze_groups_frame, text="scatter graph",
+        scatter_graph_button = customtkinter.CTkButton(master=analyze_groups_frame, text="scatter plot",
                                                        image=scatter_graph_icon, anchor="center",
                                                        fg_color='#188e99', hover_color='#0f5c63',
-                                                       command=self.show_scatter_graph, height=20, width=20)
+                                                       command=self.show_scatter_plot, height=20, width=20)
         scatter_graph_button.grid(row=0, column=1, padx=(10, 0), pady=(0, 20), ipadx=0, ipady=0, sticky="sw")
 
     def create_tab(self, name):
@@ -151,25 +156,25 @@ class GroupFrame(customtkinter.CTk):
         checkbox.grid(row=row, column=0, padx=(10, 0), pady=(0, 20))
         delete_button = customtkinter.CTkButton(master=f, text="", image=delete_icon,
                                                 anchor="center",
-                                                fg_color='#ff0004', hover_color='#d10407',
+                                                fg_color='#E88E8E', hover_color='#BA7272',
                                                 command=lambda: self.remove_item(table, group), height=20, width=20)
         delete_button.grid(row=row, column=1, padx=0, pady=(0, 20), ipadx=0, ipady=0)
 
         edit_button = customtkinter.CTkButton(master=f, text="", image=edit_icon,
                                               anchor="center",
-                                              fg_color='#0525f5', hover_color='#0319a8',
+                                              fg_color='#97C5FF', hover_color='#799ECC',
                                               command=lambda: self.edit_item(table, group), height=20, width=20)
         edit_button.grid(row=row, column=2, padx=(10, 0), pady=(0, 20), ipadx=0, ipady=0)
 
         g_button = customtkinter.CTkButton(master=f, text="", image=analyze_icon,
                                            anchor="center",
-                                           fg_color='#188e99', hover_color='#0f5c63',
+                                           fg_color='#FFF1AD', hover_color='#CCC18A',
                                            command=lambda: self.show_group_data(table, group), height=20, width=20)
         g_button.grid(row=row, column=3, padx=(10, 0), pady=(0, 20))
         export_button = customtkinter.CTkButton(master=f, text="", image=export_icon,
-                                           anchor="center",
-                                           fg_color='#63e83a', hover_color='#47ab29',
-                                           command=lambda: self.export_to_excel(table, group), height=20, width=20)
+                                                anchor="center",
+                                                fg_color='#ACE8C0', hover_color='#8ABA9A',
+                                                command=lambda: self.export_to_excel(table, group), height=20, width=20)
         export_button.grid(row=row, column=4, padx=(10, 0), pady=(0, 20))
         self.widgets[table][group].append(f)
 
@@ -181,12 +186,9 @@ class GroupFrame(customtkinter.CTk):
         self.add_item(table_name, group_name)
 
     def export_to_excel(self, table_name, group_name):
-        # root = customtkinter.CTk()
-        # root.withdraw()  # Hide the main window
-
         # Ask the user to choose the save location and file name
-        file_path = customtkinter.filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel Files", "*.xlsx")])
-
+        file_path = customtkinter.filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                                               filetypes=[("Excel Files", "*.xlsx")])
         if file_path:
             try:
                 group = self.groups[table_name][group_name]
@@ -200,7 +202,7 @@ class GroupFrame(customtkinter.CTk):
     def show_group_data(self, table, name):
         self.groups[table][name].analyze()
 
-    def show_scatter_graph(self):
+    def show_scatter_plot(self):
         table = self.tabview.get()
         selected_groups = self.get_selected_groups(table)
         if len(selected_groups) < 2:
@@ -212,21 +214,21 @@ class GroupFrame(customtkinter.CTk):
         all_markers = ['.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x',
                        'D', 'd', '|', '_', ]
         group_markers = {}
-        diversity_indices = {'total sequences': {}, 'unique sequences': {}, 'shannon': {}, 'simpson': {}}
+        di = {'total sequences': {}, 'unique sequences': {}, 'shannon': {}, 'simpson': {}}
         for i, group in enumerate(selected_groups):
             group_markers[group.group_name] = all_markers[i] if len(all_markers) > i else 'o'
-            for graph in diversity_indices.keys():
-                diversity_indices[graph][group.group_name] = []
+            for graph in di.keys():
+                di[graph][group.group_name] = []
             for p in group.participants:
-                for graph in diversity_indices.keys():
-                    diversity_indices[graph][group.group_name].append(
-                        p.diversity_indices['cdr3aa'][functionality][graph])
+                for graph in di.keys():
+                    di[graph][group.group_name].append(
+                        p.diversity_indices[functionality][graph])
         fig, axs = plt.subplots(2, 2)
         fig.suptitle(f"{table}'s Groups Diversity Indices - {functionality}", fontweight="bold")
         # Flatten the axs array so that we can loop through each subplot
         axs = axs.ravel()
-        for i, key in enumerate(diversity_indices.keys()):
-            self.create_diversity_index_plot(axs[i], diversity_indices[key], group_markers, key)
+        for i, key in enumerate(di.keys()):
+            self.create_diversity_index_plot(axs[i], di[key], group_markers, key)
         # Adjust layout to avoid overlapping labels
         plt.tight_layout()
         # Show the plot
@@ -238,28 +240,48 @@ class GroupFrame(customtkinter.CTk):
         if len(selected_groups) < 2:
             tkinter.messagebox.showerror(title='Error\n', message=f'Please select at least 2 groups')
             return
-        gene = self.get_gene()
-        if not gene:
+        functionality = self.get_functionality()
+        if not functionality:
             return
-        sequences = {'total sequences': {}, 'unique sequences': {}}
-        functionality = {'productive': sequences, 'unproductive': sequences}
-        for i, group in enumerate(selected_groups):
-            for f in functionality.keys():
-                functionality[f]['total sequences'][group.group_name] = []
-                functionality[f]['unique sequences'][group.group_name] = []
-            for p in group.participants:
-                for f in functionality.keys():
-                    total = p.diversity_indices[gene][functionality]['total sequences']
-                    unique = p.diversity_indices[gene][functionality]['unique sequences']
-                    functionality[f]['total sequences'][group.group_name].append(total)
-                    functionality[f]['unique sequences'][group.group_name].append(unique)
-        fig, axs = plt.subplots(2, 2)
-        fig.suptitle(f" Heat map of {table} Groups - {gene}", fontweight="bold")
-        # Flatten the axs array so that we can loop through each subplot
-        axs = axs.ravel()
-        for i, key in enumerate(functionality.keys()):
-            self.create_heat_map()
-        plt.show()
+        # Initialize variables to store heatmap data
+        genes = selected_groups[0].participants[0].cols
+        heat_data = {gene: {'total': pd.DataFrame(), 'unique': pd.DataFrame()} for gene in genes}
+        line_indices = []
+        i = 0
+        for group in selected_groups:
+            line_indices.append(i)
+            i += len(group.participants)
+            for participant in group.participants:
+                name = participant.individual
+                for gene in genes:
+                    data = participant.genes[functionality][gene]
+                    total_series_to_merge = pd.Series(data['total'].values, index=data[gene].values)
+                    # Convert the series to a numeric data type
+                    total_series_to_merge = pd.to_numeric(total_series_to_merge, errors='coerce')
+                    # Convert the series to a float data type
+                    total_series_to_merge = total_series_to_merge.astype(float)
+                    unique_series_to_merge = pd.Series(data['unique'].values, index=data[gene].values)
+                    # Convert the series to a numeric data type
+                    unique_series_to_merge = pd.to_numeric(unique_series_to_merge, errors='coerce')
+                    # Convert the series to a float data type
+                    unique_series_to_merge = unique_series_to_merge.astype(float)
+                    if heat_data[gene]['total'].empty:
+                        heat_data[gene]['total'][name] = total_series_to_merge
+                        heat_data[gene]['unique'][name] = unique_series_to_merge
+                    else:
+                        heat_data[gene]['total'] = heat_data[gene]['total'].merge(total_series_to_merge.rename(name),
+                                                                                  left_index=True, right_index=True,
+                                                                                  how='outer')
+                        heat_data[gene]['unique'] = heat_data[gene]['unique'].merge(total_series_to_merge.rename(name),
+                                                                                    left_index=True, right_index=True,
+                                                                                    how='outer')
+        # Plot heatmaps for total data
+        for i, gene in enumerate(genes):
+            self.create_heat_map_plot(heat_data[gene], gene, functionality, line_indices)
+        # plt.tight_layout()
+        plt.tight_layout(rect=[0, 0, 0.9, 1])
+        # Show the plot
+        plt.show(block=False)
 
     def create_diversity_index_plot(self, ax, groups, group_markers, title):
         x_positions = np.arange(len(groups)) * 2
@@ -269,12 +291,54 @@ class GroupFrame(customtkinter.CTk):
                 len(values)) * 0.2 - 0.1  # Add random jitter for better visualization
             ax.scatter(x_vals, values, marker=marker_style, label=group_name)
         ax.set_xticks(x_positions, labels=groups.keys())
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-                 rotation_mode="anchor")
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
         ax.set_ylabel(title)
 
-    def create_heat_map(self):
-        pass
+    def create_heat_map_plot(self, heat_gene, gene, functionality, line_indices):
+        fig, axs = plt.subplots(1, 2, figsize=(15, 8))
+        self.create_heat_map(heat_gene['total'], axs[0], f'{functionality} {gene} - Total', line_indices)
+        self.create_heat_map(heat_gene['unique'], axs[1], f'{functionality} {gene} - Unique', line_indices)
+
+    def create_heat_map(self, heat_data, ax, title, line_indices):
+        # Create the heatmap
+        im = ax.imshow(heat_data, cmap='Blues', aspect='auto')
+
+        # Set ticks and labels for x-axis and y-axis
+        ax.set_xticks(np.arange(len(heat_data.columns)))
+        ax.set_yticks(np.arange(len(heat_data.index)))
+        ax.set_xticklabels(heat_data.columns)
+        ax.set_yticklabels(heat_data.index)
+
+        # Rotate the x-axis labels for better visibility
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+        # Show all ticks and tick labels for both axes
+        plt.tick_params(axis='both', which='both', length=0)
+
+        # Add colorbar
+        cbar = ax.figure.colorbar(im, ax=ax)
+
+        # Function to format the tooltip text using mplcursors
+        def on_hover(event):
+            index, col = int(event.index[0]), int(event.index[1])
+            value = int(heat_data.iat[index, col])
+            label = heat_data.index[index]
+            column_name = heat_data.columns[col]
+            color_number = int(value * 255)  # Scale value to 0-255 for RGB representation
+            event.annotation.set_text(
+                f'Gene: {label}\nParticipant: {column_name}\nValue: {value}\nColor Number: {color_number}'
+            )
+
+        # Connect the mplcursors event to the on_hover function
+        mplcursors.cursor(hover=True).connect("add", on_hover)
+
+        # Set the plot title
+        ax.set_title(title)
+
+        # Highlight specific lines on the heatmap if required (line_indices)
+        if line_indices:
+            for i in line_indices[1:]:
+                ax.axvline(x=i-0.5, color='black', lw=1)
 
     def get_selected_groups(self, tab):
         selected = []
