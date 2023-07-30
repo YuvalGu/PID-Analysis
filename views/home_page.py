@@ -37,6 +37,10 @@ class HomePage(customtkinter.CTk):
         self.create_group_button = customtkinter.CTkButton(self.sidebar_frame, command=self.create_group,
                                                            text='Create Group')
         self.create_group_button.grid(row=2, column=0, padx=20, pady=10)
+        # self.classify_button = customtkinter.CTkButton(self.sidebar_frame, command=self.classify,
+        #                                                    text='Classify')
+        # self.classify_button.grid(row=3, column=0, padx=20, pady=10)
+
         self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame,
@@ -73,12 +77,10 @@ class HomePage(customtkinter.CTk):
 
     def create_group(self):
         table_selection = SelectChain()
-        table_selection.create()
         table_selection.wait_window()
         t = table_selection.table
         if t:
             group_creator = GroupCreator(t)
-            group_creator.create()
             group_creator.wait_window()
             if group_creator.valid:
                 self.group_frame.add_group(group_creator.group_name, group_creator.table_name, group_creator.members)
@@ -89,8 +91,12 @@ class HomePage(customtkinter.CTk):
         2. if succeed - add the participant to the frame
         """
         participant_creator = ParticipantCreator()
-        participant_creator.create()
         participant_creator.wait_window()
         p = participant_creator.participant
         if p:
             self.participant_frame.add_participant(p)
+
+    # def classify(self):
+    #     pass
+
+

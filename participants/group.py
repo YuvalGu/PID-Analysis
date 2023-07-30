@@ -50,7 +50,6 @@ class Group:
 
     def analyze(self):
         functionality_selection = SelectFunctionality()
-        functionality_selection.create()
         functionality_selection.wait_window()
         functionality = functionality_selection.ans
         if functionality:

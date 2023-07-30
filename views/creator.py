@@ -14,18 +14,10 @@ class ParticipantCreator(customtkinter.CTkToplevel):
         self.participant = None
         self.participant_data = None
         self.options = ['IGH', 'TRB', 'TRG']
-        # self.get_table_options()
 
         # upload frame parameters
         self.file_path = None
-        self.file_label = None
-        self.cell = None
-        self.chain = None
-        self.file_button = None
-        self.control_box = None
-        self.apply_button = None
 
-    def create(self):
         # configure window
         self.title("Upload Participant")
         self.geometry(f"{450}x{225}")
@@ -127,12 +119,8 @@ class GroupCreator(customtkinter.CTkToplevel):
         self.edit = edit
         self.p_checkbox = []
         self.valid = True
-        self.group_entry = None
-        self.search_entry = None
-        self.apply_button = None
         self.participants = self.azure.get_participants_names_from_table(table_name)
 
-    def create(self):
         # configure window
         self.title("Create Group")
         self.geometry(f"{450}x{300}")

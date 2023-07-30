@@ -116,7 +116,6 @@ class GroupFrame(customtkinter.CTk):
     def edit_item(self, table, old_group_name):
         old_members = self.groups[table][old_group_name].get_participants_names()
         creator = GroupCreator(table, old_group_name, old_members, True)
-        creator.create()
         creator.wait_window()
         if creator.valid:
             members = self.p_frame.get_participants(creator.members)
@@ -224,6 +223,7 @@ class GroupFrame(customtkinter.CTk):
                     di[graph][group.group_name].append(
                         p.diversity_indices[functionality][graph])
         fig, axs = plt.subplots(2, 2)
+        fig.canvas.manager.set_window_title('Scatter Plot')
         fig.suptitle(f"{table}'s Groups Diversity Indices - {functionality}", fontweight="bold")
         # Flatten the axs array so that we can loop through each subplot
         axs = axs.ravel()
@@ -244,8 +244,12 @@ class GroupFrame(customtkinter.CTk):
         if not functionality:
             return
         # Initialize variables to store heatmap data
-        genes = selected_groups[0].participants[0].cols
-        heat_data = {gene: {'total': pd.DataFrame(), 'unique': pd.DataFrame()} for gene in genes}
+        # genes = selected_groups[0].participants[0].cols
+        gene = self.get_gene(selected_groups[0].participants[0].cols)
+        if not gene:
+            return
+        # heat_data = {gene: {'total': pd.DataFrame(), 'unique': pd.DataFrame()} for gene in genes}
+        heat_data = {'total': pd.DataFrame(), 'unique': pd.DataFrame()}
         line_indices = []
         i = 0
         for group in selected_groups:
@@ -253,35 +257,36 @@ class GroupFrame(customtkinter.CTk):
             i += len(group.participants)
             for participant in group.participants:
                 name = participant.individual
-                for gene in genes:
-                    data = participant.genes[functionality][gene]
-                    total_series_to_merge = pd.Series(data['total'].values, index=data[gene].values)
-                    # Convert the series to a numeric data type
-                    total_series_to_merge = pd.to_numeric(total_series_to_merge, errors='coerce')
-                    # Convert the series to a float data type
-                    total_series_to_merge = total_series_to_merge.astype(float)
-                    unique_series_to_merge = pd.Series(data['unique'].values, index=data[gene].values)
-                    # Convert the series to a numeric data type
-                    unique_series_to_merge = pd.to_numeric(unique_series_to_merge, errors='coerce')
-                    # Convert the series to a float data type
-                    unique_series_to_merge = unique_series_to_merge.astype(float)
-                    if heat_data[gene]['total'].empty:
-                        heat_data[gene]['total'][name] = total_series_to_merge
-                        heat_data[gene]['unique'][name] = unique_series_to_merge
-                    else:
-                        heat_data[gene]['total'] = heat_data[gene]['total'].merge(total_series_to_merge.rename(name),
-                                                                                  left_index=True, right_index=True,
-                                                                                  how='outer')
-                        heat_data[gene]['unique'] = heat_data[gene]['unique'].merge(total_series_to_merge.rename(name),
-                                                                                    left_index=True, right_index=True,
-                                                                                    how='outer')
+                # for gene in genes:
+                data = participant.genes[functionality][gene]
+                total_series_to_merge = pd.Series(data['total'].values, index=data[gene].values)
+                # Convert the series to a numeric data type
+                total_series_to_merge = pd.to_numeric(total_series_to_merge, errors='coerce')
+                # Convert the series to a float data type
+                total_series_to_merge = total_series_to_merge.astype(float)
+                unique_series_to_merge = pd.Series(data['unique'].values, index=data[gene].values)
+                # Convert the series to a numeric data type
+                unique_series_to_merge = pd.to_numeric(unique_series_to_merge, errors='coerce')
+                # Convert the series to a float data type
+                unique_series_to_merge = unique_series_to_merge.astype(float)
+                if heat_data['total'].empty:
+                    heat_data['total'][name] = total_series_to_merge
+                    heat_data['unique'][name] = unique_series_to_merge
+                else:
+                    heat_data['total'] = heat_data['total'].merge(total_series_to_merge.rename(name),
+                                                                              left_index=True, right_index=True,
+                                                                              how='outer')
+                    heat_data['unique'] = heat_data['unique'].merge(total_series_to_merge.rename(name),
+                                                                                left_index=True, right_index=True,
+                                                                                how='outer')
         # Plot heatmaps for total data
-        for i, gene in enumerate(genes):
-            self.create_heat_map_plot(heat_data[gene], gene, functionality, line_indices)
+        # for i, gene in enumerate(genes):
+        self.create_heat_map_plot(heat_data, gene, functionality, line_indices)
         # plt.tight_layout()
         plt.tight_layout(rect=[0, 0, 0.9, 1])
         # Show the plot
-        plt.show(block=False)
+        # plt.show(block=False)
+        plt.show()
 
     def create_diversity_index_plot(self, ax, groups, group_markers, title):
         x_positions = np.arange(len(groups)) * 2
@@ -296,6 +301,7 @@ class GroupFrame(customtkinter.CTk):
 
     def create_heat_map_plot(self, heat_gene, gene, functionality, line_indices):
         fig, axs = plt.subplots(1, 2, figsize=(15, 8))
+        fig.canvas.manager.set_window_title('Heatmap')
         self.create_heat_map(heat_gene['total'], axs[0], f'{functionality} {gene} - Total', line_indices)
         self.create_heat_map(heat_gene['unique'], axs[1], f'{functionality} {gene} - Unique', line_indices)
 
@@ -350,12 +356,10 @@ class GroupFrame(customtkinter.CTk):
 
     def get_functionality(self):
         functionality_selection = SelectFunctionality()
-        functionality_selection.create()
         functionality_selection.wait_window()
         return functionality_selection.ans
 
-    def get_gene(self):
-        gene_selection = SelectGene()
-        gene_selection.create()
+    def get_gene(self, genes):
+        gene_selection = SelectGene(genes)
         gene_selection.wait_window()
         return gene_selection.ans
