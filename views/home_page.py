@@ -2,11 +2,11 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 from views.creator import ParticipantCreator, GroupCreator
-from views.selector import SelectChain
+from views.selector import SelectChain, SelectParticipant
 from views.participants_frame import ParticipantFrame
 from views.groups_frame import GroupFrame
-from participants.group import Group
-import pandas as pd
+from PIL import Image
+import os
 
 
 class HomePage(customtkinter.CTk):
@@ -15,31 +15,36 @@ class HomePage(customtkinter.CTk):
 
         # configure window
         self.file_label = None
-        self.title("Home Page")
+        self.title("PID Analysis")
         self.geometry(f"{1100}x{580}")
 
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=1)
-        # self.grid_columnconfigure(2, weight=0)
-        self.grid_rowconfigure((1, 2), weight=1)
-        self.grid_rowconfigure(3, weight=0)
+        self.grid_columnconfigure(2, weight=0)
+        self.grid_rowconfigure((0, 1, 2), weight=1)
+        # self.grid_rowconfigure(3, weight=0)
 
         # create sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="PID Analysis",
-                                                 font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+
+        self.image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons')
+        self.logo_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "logo.png")), size=(100, 100))
+        self.logo = customtkinter.CTkButton(master=self.sidebar_frame, text="", image=self.logo_icon, anchor="center",
+                                            height=50, width=50, fg_color=self.sidebar_frame.cget("fg_color"),
+                                            hover_color=self.sidebar_frame.cget("fg_color"))
+        self.logo.grid(row=0, column=0, padx=20)
+
         self.add_participant_button = customtkinter.CTkButton(self.sidebar_frame, command=self.add_participant,
                                                               text='Add Participant')
         self.add_participant_button.grid(row=1, column=0, padx=20, pady=10)
         self.create_group_button = customtkinter.CTkButton(self.sidebar_frame, command=self.create_group,
                                                            text='Create Group')
         self.create_group_button.grid(row=2, column=0, padx=20, pady=10)
-        # self.classify_button = customtkinter.CTkButton(self.sidebar_frame, command=self.classify,
-        #                                                    text='Classify')
-        # self.classify_button.grid(row=3, column=0, padx=20, pady=10)
+        self.classify_button = customtkinter.CTkButton(self.sidebar_frame, command=self.classify,
+                                                       text='Classify')
+        self.classify_button.grid(row=3, column=0, padx=20, pady=10)
 
         self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
@@ -96,7 +101,12 @@ class HomePage(customtkinter.CTk):
         if p:
             self.participant_frame.add_participant(p)
 
-    # def classify(self):
-    #     pass
-
-
+    def classify(self):
+        table_selection = SelectChain()
+        table_selection.wait_window()
+        t = table_selection.table
+        if t:
+            select_participant = SelectParticipant(t)
+            select_participant.wait_window()
+            if select_participant.valid:
+                self.participant_frame.show_knn(t, select_participant.names, select_participant.p, select_participant.k)

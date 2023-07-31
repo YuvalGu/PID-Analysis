@@ -2,7 +2,6 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 import mplcursors
-
 from database.database_manager import AzureDatabaseManager
 from azure.kusto.data.exceptions import KustoError
 from participants.group import Group
@@ -12,8 +11,6 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import plotly.express as px
 import os
 
 
@@ -24,8 +21,8 @@ class GroupFrame(customtkinter.CTk):
         self.p_frame = p_frame
         self.azure = AzureDatabaseManager('shiba')
         self.groups = {}
-        self.groups_frame = customtkinter.CTkFrame(self.root, width=500)
-        self.groups_frame.grid(row=0, column=2, rowspan=4, columnspan=2, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.groups_frame = customtkinter.CTkFrame(self.root, width=420)
+        self.groups_frame.grid(row=0, column=2, rowspan=4, columnspan=2, padx=(0, 20), pady=(20, 20), sticky="nsew")
         self.groups_frame.rowconfigure(0, weight=15)
         self.groups_frame.rowconfigure(1, weight=1)
         self.image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons')
@@ -43,15 +40,15 @@ class GroupFrame(customtkinter.CTk):
                 self.add_group(group_name, table_name, self.azure.get_participants_from_group(group_name, table_name))
 
     def create_tab_views(self):
-        self.tabview = customtkinter.CTkTabview(self.groups_frame, width=500)
-        self.tabview.grid(row=0, column=2, padx=(20, 0), pady=(20, 0), sticky="nsew")
+        self.tabview = customtkinter.CTkTabview(self.groups_frame, width=460)
+        self.tabview.grid(row=0, column=2, padx=(20, 10), pady=0, sticky="nsew")
         for table in self.table_names:
             self.create_tab(table)
         self.create_analyze_groups()
 
     def create_analyze_groups(self):
         analyze_groups_frame = customtkinter.CTkFrame(self.groups_frame)
-        analyze_groups_frame.grid(row=1, column=2, padx=(20, 0), sticky="nsew")
+        analyze_groups_frame.grid(row=1, column=2, padx=(20, 10), sticky="nsew")
         analyze_groups_frame.grid_columnconfigure((0, 1), weight=1)
         heat_map_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "heatmap.png")), size=(20, 20))
 
@@ -157,7 +154,7 @@ class GroupFrame(customtkinter.CTk):
                                                 anchor="center",
                                                 fg_color='#E88E8E', hover_color='#BA7272',
                                                 command=lambda: self.remove_item(table, group), height=20, width=20)
-        delete_button.grid(row=row, column=1, padx=0, pady=(0, 20), ipadx=0, ipady=0)
+        delete_button.grid(row=row, column=1, padx=(20, 0), pady=(0, 20), ipadx=0, ipady=0)
 
         edit_button = customtkinter.CTkButton(master=f, text="", image=edit_icon,
                                               anchor="center",
@@ -363,3 +360,4 @@ class GroupFrame(customtkinter.CTk):
         gene_selection = SelectGene(genes)
         gene_selection.wait_window()
         return gene_selection.ans
+

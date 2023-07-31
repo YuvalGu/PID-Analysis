@@ -1,17 +1,9 @@
-import matplotlib.pyplot as plt
-import pandas as pd
 from database.database_manager import AzureDatabaseManager
 from matplotlib import gridspec
-# import packages and modules
 import pandas as pd
-import numpy as np
-from sklearn.datasets import load_iris
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from pandas.plotting import table
-from sklearn import preprocessing
-from views.selector import SelectFunctionality, SelectGene
+from views.selector import SelectFunctionality
 
 
 class Group:

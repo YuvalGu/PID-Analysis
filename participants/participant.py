@@ -6,8 +6,12 @@ import squarify
 import mplcursors
 from database.database_manager import AzureDatabaseManager
 from views.loading_frame import LoadingFrame
+from views.selector import SelectData
 from scipy.stats import entropy
 import numpy as np
+import tkinter
+import tkinter.messagebox
+import customtkinter
 
 
 class Participant:
@@ -26,7 +30,7 @@ class Participant:
             self.genes['productive'][col], self.genes['unproductive'][col] = self._calculate_gene_data(col)
 
     def analyze(self):
-        loading = LoadingFrame()
+        # loading = LoadingFrame()
         # create a figure
         fig = plt.figure(figsize=(15, 8))
         fig.canvas.manager.set_window_title('Analyze')
@@ -39,7 +43,7 @@ class Participant:
         ax2 = plt.subplot(gs[0, -1])
         self._show_diversity_indices(ax2)
         plt.show()
-        loading.close_loading_window()
+        # loading.close_loading_window()
 
     def _create_tree_map(self, ax):
         colors = []
@@ -66,6 +70,28 @@ class Participant:
         data2 = data.query("functionality=='unproductive'")[['cdr3aa', 'jgene', 'dgene', 'vgene', 'total']]
         data2 = data2.reset_index(drop=True)
         return data1, data2
+
+    def export_to_excel(self):
+        data_selection = SelectData(self.cols)
+        data_selection.wait_window()
+        if data_selection.ans:
+            # Ask the user to choose the save location and file name
+            file_path = customtkinter.filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                                                   filetypes=[("Excel Files", "*.xlsx")])
+            if file_path:
+                if data_selection.ans == 'diversity indices':
+                    data = pd.DataFrame(self.diversity_indices).reset_index()
+                else:
+                    keys = data_selection.ans.split(" ")
+                    gene = keys[0]
+                    functionality = keys[1]
+                    data = pd.DataFrame(self.genes[functionality][gene])
+                try:
+                    # Write the DataFrame to the Excel file
+                    data.to_excel(file_path, index=False)
+                    tkinter.messagebox.showinfo(title='SUCCESS', message=f'data exported successfully')
+                except Exception as e:
+                    tkinter.messagebox.showerror(title="ERROR exporting the data\n", message=str(e))
 
     def _calculate_diversity_indices(self):
         self.diversity_indices = {'productive': {}, 'unproductive': {}}
@@ -99,5 +125,3 @@ class Participant:
         pro_grouped_df = self.pro_df.groupby(col).agg(unique=(col, 'size'), total=('total', 'sum')).reset_index()
         unpro_grouped_df = self.unpro_df.groupby(col).agg(unique=(col, 'size'), total=('total', 'sum')).reset_index()
         return pro_grouped_df, unpro_grouped_df
-
-

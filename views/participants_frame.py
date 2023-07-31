@@ -6,6 +6,8 @@ from database.database_manager import AzureDatabaseManager
 from PIL import Image
 import os
 from participants.participant import Participant
+from views.knn_results import KnnResults
+from model.knn import Knn
 from azure.kusto.data.exceptions import KustoError
 
 
@@ -32,8 +34,8 @@ class ParticipantFrame(customtkinter.CTk):
             self.add_participant(name)
 
     def create_tab_views(self):
-        self.tabview = customtkinter.CTkTabview(self.root, width=500)
-        self.tabview.grid(row=0, column=1, rowspan=4, padx=(20, 0), pady=(20, 20), sticky="nsew")
+        self.tabview = customtkinter.CTkTabview(self.root)
+        self.tabview.grid(row=0, column=1, rowspan=4, padx=(20, 0), pady=(0, 20), sticky="nsew")
         for name in self.tab_names:
             self.create_tab(name)
 
@@ -51,7 +53,6 @@ class ParticipantFrame(customtkinter.CTk):
         scrollbar = customtkinter.CTkScrollbar(self.tabview.tab(name), orientation='vertical', command=canvas.yview)
         scrollbar.pack(side='right', fill='y')
 
-        # canvas.configure(yscrollcommand=scrollbar.set, bg=self.tabview.tab(name).cget("fg_color")[1])
         canvas.configure(yscrollcommand=scrollbar.set)
 
         # Configure the canvas to scroll the frame
@@ -104,17 +105,23 @@ class ParticipantFrame(customtkinter.CTk):
     def add_item(self, frame, p):
         row = len(frame.winfo_children())
         image_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "delete.png")), size=(20, 20))
+        export_icon = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "export.png")), size=(20, 20))
         f = customtkinter.CTkFrame(master=frame)
-        # f.grid(row=row, column=0, pady=(0, 20))
         f.pack(fill="both", expand=True)
         p_button = customtkinter.CTkButton(master=f, text=p, anchor="center",
                                            command=lambda: self.show_participant(p))
         p_button.grid(row=row, column=0, padx=10, pady=(0, 20))
         delete_button = customtkinter.CTkButton(master=f, text="", image=image_icon,
                                                 anchor="center",
-                                                fg_color='#ff0004', hover_color='#d10407',
+                                                fg_color='#E88E8E', hover_color='#BA7272',
                                                 command=lambda: self.remove_item(p), height=20, width=20)
         delete_button.grid(row=row, column=1, padx=0, pady=(0, 20), ipadx=0, ipady=0)
+        export_button = customtkinter.CTkButton(master=f, text="", image=export_icon, anchor="center",
+                                                fg_color='#ACE8C0', hover_color='#8ABA9A',
+                                                command=lambda: self.participants[p].export_to_excel(), height=20,
+                                                width=20)
+        export_button.grid(row=row, column=2, padx=(10, 0), pady=(0, 20))
+
         self.widgets[p].append(f)
 
     def add_participant(self, individual):
@@ -146,3 +153,30 @@ class ParticipantFrame(customtkinter.CTk):
         for individual in individuals:
             participants_list.append(self.participants[individual])
         return participants_list
+
+    def show_knn(self, table, names, individual, k):
+        target_participant = self.participants[individual]
+        participants_list = []
+        for name in names:
+            participants_list.append(self.participants[name])
+        knn = Knn(participants_list, k)
+
+        # Find the k-nearest neighbors of the target participant
+        k_nearest_neighbors = knn.find_k_nearest_neighbors(target_participant)
+
+        # Extract true labels and predicted labels for validation
+        true_labels = [1 if participant is target_participant else 0 for participant in participants_list]
+        predicted_labels = [1 if participant in k_nearest_neighbors else 0 for participant in participants_list]
+
+        # Calculate validation metrics
+        accuracy, precision, recall, f1 = knn.calculate_metrics(true_labels, predicted_labels)
+        validation_metrics = {'Accuracy': accuracy, 'Precision': precision, 'Recall': recall, 'F1': f1}
+
+        knn_result_frame = KnnResults(target_participant, k_nearest_neighbors, validation_metrics)
+
+        # Print the results
+        print("K-nearest neighbors:", [participant.individual for participant in k_nearest_neighbors])
+        print("Accuracy:", accuracy)
+        print("Precision:", precision)
+        print("Recall:", recall)
+        print("F1 Score:", f1)

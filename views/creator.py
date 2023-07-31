@@ -3,8 +3,6 @@ import tkinter.messagebox
 import customtkinter
 import pandas as pd
 from database.database_manager import AzureDatabaseManager
-from participants.participant import Participant
-from participants.group import Group
 from azure.kusto.data.exceptions import KustoError
 
 
@@ -21,6 +19,16 @@ class ParticipantCreator(customtkinter.CTkToplevel):
         # configure window
         self.title("Upload Participant")
         self.geometry(f"{450}x{225}")
+
+        # Get the current mouse position
+        mouse_x, mouse_y = self.winfo_pointerx(), self.winfo_pointery()
+
+        # Calculate the window position relative to the mouse
+        window_x = mouse_x - 125  # Adjust this value to change the window's horizontal position
+        window_y = mouse_y - 75  # Adjust this value to change the window's vertical position
+
+        # Set the window position
+        self.geometry(f"+{window_x}+{window_y}")
 
         # configure grid layout (5x2)
         self.grid_columnconfigure((0, 1), weight=1)
@@ -125,7 +133,16 @@ class GroupCreator(customtkinter.CTkToplevel):
         self.title("Create Group")
         self.geometry(f"{450}x{300}")
 
-        # configure grid layout (3x2)
+        # Get the current mouse position
+        mouse_x, mouse_y = self.winfo_pointerx(), self.winfo_pointery()
+
+        # Calculate the window position relative to the mouse
+        window_x = mouse_x - 125  # Adjust this value to change the window's horizontal position
+        window_y = mouse_y - 75  # Adjust this value to change the window's vertical position
+
+        # Set the window position
+        self.geometry(f"+{window_x}+{window_y}")
+
         self.grid_columnconfigure(0, weight=2)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure((0, 1, 2, 3), weight=2)
