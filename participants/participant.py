@@ -54,12 +54,14 @@ class Participant:
         cursor.connect("add", lambda sel: sel.annotation.set_text(
             f"cdr3aa:{self.pro_df['cdr3aa'].iloc[sel.target.index]}\ntotal: {self.pro_df['total'].iloc[sel.target.index]}\n"))
         ax.axis('off')
+        ax.set_title('TreeMap')
 
     def _show_diversity_indices(self, ax):
         di = self.diversity_indices['productive']
         text = f"Unique sequences: {di['unique sequences']}\n\nTotal sequences: {di['total sequences']}\n\nShannon: " \
                f"{di['shannon']}\n\nSimpson: {di['simpson']}\n"
         ax.axis('off')
+        ax.set_title('Diversity Indices - productive')
         ax.text(0, 0.6, s=text, fontsize=15)
 
     def get_data(self):

@@ -173,10 +173,3 @@ class ParticipantFrame(customtkinter.CTk):
         validation_metrics = {'Accuracy': accuracy, 'Precision': precision, 'Recall': recall, 'F1': f1}
 
         knn_result_frame = KnnResults(target_participant, k_nearest_neighbors, validation_metrics)
-
-        # Print the results
-        print("K-nearest neighbors:", [participant.individual for participant in k_nearest_neighbors])
-        print("Accuracy:", accuracy)
-        print("Precision:", precision)
-        print("Recall:", recall)
-        print("F1 Score:", f1)

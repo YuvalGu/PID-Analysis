@@ -271,11 +271,11 @@ class GroupFrame(customtkinter.CTk):
                     heat_data['unique'][name] = unique_series_to_merge
                 else:
                     heat_data['total'] = heat_data['total'].merge(total_series_to_merge.rename(name),
-                                                                              left_index=True, right_index=True,
-                                                                              how='outer')
+                                                                  left_index=True, right_index=True,
+                                                                  how='inner')
                     heat_data['unique'] = heat_data['unique'].merge(total_series_to_merge.rename(name),
-                                                                                left_index=True, right_index=True,
-                                                                                how='outer')
+                                                                    left_index=True, right_index=True,
+                                                                    how='inner')
         # Plot heatmaps for total data
         # for i, gene in enumerate(genes):
         self.create_heat_map_plot(heat_data, gene, functionality, line_indices)
@@ -295,6 +295,8 @@ class GroupFrame(customtkinter.CTk):
         ax.set_xticks(x_positions, labels=groups.keys())
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
         ax.set_ylabel(title)
+        # Connect the mplcursors event to the on_hover function
+        mplcursors.cursor(hover=True)
 
     def create_heat_map_plot(self, heat_gene, gene, functionality, line_indices):
         fig, axs = plt.subplots(1, 2, figsize=(15, 8))
@@ -341,7 +343,7 @@ class GroupFrame(customtkinter.CTk):
         # Highlight specific lines on the heatmap if required (line_indices)
         if line_indices:
             for i in line_indices[1:]:
-                ax.axvline(x=i-0.5, color='black', lw=1)
+                ax.axvline(x=i - 0.5, color='black', lw=1)
 
     def get_selected_groups(self, tab):
         selected = []
@@ -360,4 +362,3 @@ class GroupFrame(customtkinter.CTk):
         gene_selection = SelectGene(genes)
         gene_selection.wait_window()
         return gene_selection.ans
-

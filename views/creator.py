@@ -130,7 +130,10 @@ class GroupCreator(customtkinter.CTkToplevel):
         self.participants = self.azure.get_participants_names_from_table(table_name)
 
         # configure window
-        self.title("Create Group")
+        if edit:
+            self.title("Edit Group")
+        else:
+            self.title("Create Group")
         self.geometry(f"{450}x{300}")
 
         # Get the current mouse position
