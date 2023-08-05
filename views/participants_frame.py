@@ -162,7 +162,7 @@ class ParticipantFrame(customtkinter.CTk):
         knn = Knn(participants_list, k)
 
         # Find the k-nearest neighbors of the target participant
-        k_nearest_neighbors = knn.find_k_nearest_neighbors(target_participant)
+        k_nearest_neighbors, distances = knn.find_k_nearest_neighbors(target_participant)
 
         # Extract true labels and predicted labels for validation
         true_labels = [1 if participant is target_participant else 0 for participant in participants_list]
@@ -172,4 +172,4 @@ class ParticipantFrame(customtkinter.CTk):
         accuracy, precision, recall, f1 = knn.calculate_metrics(true_labels, predicted_labels)
         validation_metrics = {'Accuracy': accuracy, 'Precision': precision, 'Recall': recall, 'F1': f1}
 
-        knn_result_frame = KnnResults(target_participant, k_nearest_neighbors, validation_metrics)
+        KnnResults(target_participant, self.get_participants(k_nearest_neighbors), validation_metrics, distances)

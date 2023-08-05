@@ -210,8 +210,10 @@ class GroupFrame(customtkinter.CTk):
         all_markers = ['.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x',
                        'D', 'd', '|', '_', ]
         group_markers = {}
+        group_participants = {}
         di = {'total sequences': {}, 'unique sequences': {}, 'shannon': {}, 'simpson': {}}
         for i, group in enumerate(selected_groups):
+            group_participants[group.group_name] = [p.individual for p in group.participants]
             group_markers[group.group_name] = all_markers[i] if len(all_markers) > i else 'o'
             for graph in di.keys():
                 di[graph][group.group_name] = []
@@ -225,11 +227,33 @@ class GroupFrame(customtkinter.CTk):
         # Flatten the axs array so that we can loop through each subplot
         axs = axs.ravel()
         for i, key in enumerate(di.keys()):
-            self.create_diversity_index_plot(axs[i], di[key], group_markers, key)
+            self.create_diversity_index_plot(axs[i], di[key], group_markers, key, group_participants)
         # Adjust layout to avoid overlapping labels
         plt.tight_layout()
         # Show the plot
         plt.show()
+
+    def create_diversity_index_plot(self, ax, groups, group_markers, title, participants):
+        x_positions = np.arange(len(groups)) * 2
+        for i, (group_name, values) in enumerate(groups.items()):
+            marker_style = group_markers.get(group_name, 'o')  # Default to circle marker if group has no marker defined
+            x_vals = x_positions[i] + np.random.rand(
+                len(values)) * 0.2 - 0.1  # Add random jitter for better visualization
+            ax.scatter(x_vals, values, marker=marker_style, label=group_name)
+        ax.set_xticks(x_positions, labels=groups.keys())
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_ylabel(title)
+        # Connect the mplcursors event to the on_hover function
+        cursor = mplcursors.cursor(hover=True)
+
+        # Define the function to show tooltip with participant value and distances
+        def tooltip_handler(sel):
+            name = sel.annotation.get_text().split("y=")[0][:-1]
+            text = f"{participants[name][sel.index]}\n{sel.annotation.get_text()}"
+            sel.annotation.set_text(text)
+
+        # Set the tooltip handler
+        cursor.connect("add", tooltip_handler)
 
     def show_heat_map(self):
         table = self.tabview.get()
@@ -284,19 +308,6 @@ class GroupFrame(customtkinter.CTk):
         # Show the plot
         # plt.show(block=False)
         plt.show()
-
-    def create_diversity_index_plot(self, ax, groups, group_markers, title):
-        x_positions = np.arange(len(groups)) * 2
-        for i, (group_name, values) in enumerate(groups.items()):
-            marker_style = group_markers.get(group_name, 'o')  # Default to circle marker if group has no marker defined
-            x_vals = x_positions[i] + np.random.rand(
-                len(values)) * 0.2 - 0.1  # Add random jitter for better visualization
-            ax.scatter(x_vals, values, marker=marker_style, label=group_name)
-        ax.set_xticks(x_positions, labels=groups.keys())
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-        ax.set_ylabel(title)
-        # Connect the mplcursors event to the on_hover function
-        mplcursors.cursor(hover=True)
 
     def create_heat_map_plot(self, heat_gene, gene, functionality, line_indices):
         fig, axs = plt.subplots(1, 2, figsize=(15, 8))
