@@ -1,18 +1,8 @@
 from azure.kusto.data import KustoClient, KustoConnectionStringBuilder, DataFormat
 from azure.kusto.data.exceptions import KustoServiceError
 from azure.kusto.data.helpers import dataframe_from_result_table
-from azure.kusto.ingest import (
-    BlobDescriptor,
-    FileDescriptor,
-    IngestionProperties,
-    IngestionStatus,
-    KustoStreamingIngestClient,
-    ManagedStreamingIngestClient,
-    QueuedIngestClient,
-    StreamDescriptor,
-)
+from azure.kusto.ingest import IngestionProperties, QueuedIngestClient
 import pandas as pd
-import logging
 
 
 class AzureDatabaseManager:
