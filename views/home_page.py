@@ -16,6 +16,7 @@ class HomePage(customtkinter.CTk):
         # configure window
         self.file_label = None
         self.title("PID Analysis")
+        self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico'))
         self.geometry(f"{1100}x{580}")
 
         # configure grid layout (4x4)

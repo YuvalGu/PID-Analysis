@@ -10,6 +10,8 @@ class KnnResults(customtkinter.CTkToplevel):
         super().__init__()
         self.k = len(k_nearest_neighbors)
         self.title("Results")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         self.geometry(f"{545}x{465}")
         self.distance_df = distance_df
         self.image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons')

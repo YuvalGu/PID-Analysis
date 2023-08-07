@@ -4,6 +4,7 @@ import customtkinter
 import pandas as pd
 from database.database_manager import AzureDatabaseManager
 from azure.kusto.data.exceptions import KustoError
+import os
 
 
 class ParticipantCreator(customtkinter.CTkToplevel):
@@ -18,6 +19,8 @@ class ParticipantCreator(customtkinter.CTkToplevel):
 
         # configure window
         self.title("Upload Participant")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         self.geometry(f"{450}x{225}")
 
         # Get the current mouse position
@@ -135,8 +138,8 @@ class GroupCreator(customtkinter.CTkToplevel):
         else:
             self.title("Create Group")
         self.geometry(f"{450}x{300}")
-
-        # Get the current mouse position
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))        # Get the current mouse position
         mouse_x, mouse_y = self.winfo_pointerx(), self.winfo_pointery()
 
         # Calculate the window position relative to the mouse

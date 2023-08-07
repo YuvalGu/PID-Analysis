@@ -2,6 +2,7 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 from database.database_manager import AzureDatabaseManager
+import os
 
 
 class SelectChain(customtkinter.CTkToplevel):
@@ -13,6 +14,8 @@ class SelectChain(customtkinter.CTkToplevel):
         self.radio_var = tkinter.IntVar(value=0)
         # configure window
         self.title("Choose Chain")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         self.geometry(f"{250}x{150}")
 
         # Get the current mouse position
@@ -59,6 +62,8 @@ class SelectFunctionality(customtkinter.CTkToplevel):
         self.radio_var = tkinter.IntVar(value=0)
         # configure window
         self.title("Choose Functionality")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         self.geometry(f"{250}x{150}")
 
         # Get the current mouse position
@@ -108,6 +113,8 @@ class SelectGene(customtkinter.CTkToplevel):
 
         # configure window
         self.title("Choose Gene")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         self.geometry(f"{270}x{150}")
 
         # Get the current mouse position
@@ -158,6 +165,8 @@ class SelectData(customtkinter.CTkToplevel):
 
         # configure window
         self.title("Choose data type")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         if len(self.genes) == 3:
             self.geometry(f"{300}x{310}")
         else:
@@ -209,6 +218,8 @@ class SelectParticipant(customtkinter.CTkToplevel):
 
         # configure window
         self.title("Choose Participant")
+        self.after(220,
+                   lambda: self.iconbitmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons\\pid.ico')))
         self.geometry(f"{450}x{300}")
 
         # Get the current mouse position
